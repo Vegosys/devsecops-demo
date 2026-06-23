@@ -1,0 +1,238 @@
+name: AI-Enabled DevSecOps Pipeline (Demo / POC)
+
+# Demo pipeline — every stage is SIMULATED so it always runs green and fast.
+# DevSecOps gates are marked with shields; the AI-enabled stages are marked 🤖.
+# No cloud/registry/cluster needed. "deploy" just prints success.
+# Each stage has a "# REAL:" line showing the production action to swap in.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: "Target environment"
+        type: choice
+        options: [staging, production]
+        default: staging
+
+permissions:
+  contents: read
+  # pull-requests: write   # needed for REAL AI code-review comments
+
+env:
+  APP_NAME: demo-service
+  IMAGE: registry.example.com/demo-service
+
+jobs:
+  # ============ STAGE 1: SHIFT-LEFT SECURITY (parallel) ============
+  secret-scan:
+    name: 🔑 Secret Scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: |
+          echo "Scanning working tree for secrets..."; sleep 2
+          echo "✅ 0 secrets found · push protection OK"
+          # REAL: uses: gitleaks/gitleaks-action@v2
+          echo "### 🔑 Secret Scan — ✅ passed (0 findings)" >> "$GITHUB_STEP_SUMMARY"
+
+  sast:
+    name: 🧠 SAST
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: |
+          echo "Running static analysis (p/security-audit)..."; sleep 3
+          echo "0 critical · 0 high · 2 low (informational)"; echo "✅ SAST gate passed"
+          # REAL: uses: returntocorp/semgrep-action@v1   (or github/codeql-action)
+          echo "### 🧠 SAST — ✅ passed (0 high / 2 low)" >> "$GITHUB_STEP_SUMMARY"
+
+  sca:
+    name: 📦 SCA / Dependencies
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: |
+          echo "Scanning dependencies for CVEs & licenses..."; sleep 2
+          echo "0 critical · 1 medium (no fix — policy: allow) · licenses OK"; echo "✅ SCA gate passed"
+          # REAL: run: trivy fs --severity HIGH,CRITICAL --exit-code 1 .
+          echo "### 📦 SCA — ✅ passed (1 medium, allowed)" >> "$GITHUB_STEP_SUMMARY"
+
+  iac-scan:
+    name: 🏗️ IaC Scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: |
+          echo "Scanning Terraform/K8s manifests..."; sleep 2
+          echo "142 passed · 0 failed"; echo "✅ IaC gate passed"
+          # REAL: run: checkov -d . --quiet   /   tfsec .
+          echo "### 🏗️ IaC Scan — ✅ passed (142/142)" >> "$GITHUB_STEP_SUMMARY"
+
+  # ============ 🤖 AI STAGES (advisory, run alongside scans) ============
+  ai-code-review:
+    name: 🤖 AI Code Review
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: |
+          echo "🤖 Claude reviewing PR diff (3 files, +120 / -18)..."; sleep 3
+          echo "Summary: logic sound, naming consistent."
+          echo "⚠️  1 finding: unvalidated input at handler.go:42 → fix suggested inline"
+          echo "Blocking issues: 0"
+          # REAL: call Anthropic API on the diff (or CodeRabbit / Semgrep Assistant) -> PR comments
+          echo "### 🤖 AI Code Review — ✅ 1 suggestion, 0 blocking" >> "$GITHUB_STEP_SUMMARY"
+
+  ai-test-gen:
+    name: 🤖 AI Test Generation
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: |
+          echo "🤖 Detecting changed functions below coverage threshold..."; sleep 2
+          echo "Generated 5 unit tests for 2 functions..."; sleep 2
+          echo "Running generated tests... ✅ 5/5 pass"
+          echo "Coverage: 71% → 86% (tests proposed as a PR)"
+          # REAL: Anthropic API generates tests for changed files, run, open suggestion
+          echo "### 🤖 AI Test Generation — ✅ +5 tests, coverage 71%→86%" >> "$GITHUB_STEP_SUMMARY"
+
+  # ============ STAGE 2: BUILD (fast) ============
+  build:
+    name: ⚙️ Build
+    runs-on: ubuntu-latest
+    needs: [secret-scan, sast, sca, iac-scan]
+    outputs:
+      tag: ${{ steps.meta.outputs.tag }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: meta
+        run: |
+          TAG="${GITHUB_SHA::7}"; echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "Building $IMAGE:$TAG ..."; sleep 2; echo "✅ Build complete in 2s"
+          # REAL: docker build -t $IMAGE:$TAG . && docker push $IMAGE:$TAG
+          echo "### ⚙️ Build — ✅ image \`$IMAGE:$TAG\`" >> "$GITHUB_STEP_SUMMARY"
+
+  # ============ STAGE 3: ARTIFACT SECURITY ============
+  image-scan:
+    name: 🛡️ Image Scan
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - run: |
+          echo "Scanning $IMAGE:${{ needs.build.outputs.tag }} for CVEs..."; sleep 2
+          echo "✅ 0 fixable HIGH/CRITICAL — image clean"
+          # REAL: uses: aquasecurity/trivy-action (image mode)
+          echo "### 🛡️ Image Scan — ✅ clean" >> "$GITHUB_STEP_SUMMARY"
+
+  sbom-sign:
+    name: 🔏 SBOM + Sign
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - run: |
+          echo "Generating CycloneDX SBOM (Syft)..."; sleep 1
+          echo "Signing image with Cosign (keyless/OIDC)..."; sleep 1
+          echo "✅ SBOM attached · signature + provenance in transparency log"
+          # REAL: syft $IMAGE:$TAG -o cyclonedx-json && cosign sign --yes $IMAGE:$TAG
+          echo "### 🔏 SBOM + Sign — ✅ signed & attested" >> "$GITHUB_STEP_SUMMARY"
+
+  # ============ STAGE 4: DAST ============
+  dast:
+    name: 🌐 DAST
+    runs-on: ubuntu-latest
+    needs: [image-scan, sbom-sign]
+    steps:
+      - run: |
+          echo "Ephemeral preview + OWASP ZAP baseline..."; sleep 3
+          echo "0 high · 1 low (header)"; echo "✅ DAST gate passed"
+          # REAL: uses: zaproxy/action-baseline
+          echo "### 🌐 DAST — ✅ passed (0 high)" >> "$GITHUB_STEP_SUMMARY"
+
+  # ============ 🤖 AI SECURITY TRIAGE (the differentiator — gate before deploy) ============
+  ai-triage:
+    name: 🤖 AI Security Triage
+    runs-on: ubuntu-latest
+    needs: [secret-scan, sast, sca, iac-scan, image-scan, dast]
+    steps:
+      - run: |
+          echo "🤖 Claude ingesting findings from SAST, SCA, DAST, image & secret scans..."; sleep 3
+          echo "• Cross-tool de-duplication: merged 1 duplicate"
+          echo "• Auto-dismissed 2 false positives (rationale attached)"
+          echo "• Prioritized 1 medium → one-line remediation suggested"
+          echo "• Noise reduced ~75% · 0 blocking issues for release"
+          echo "✅ AI triage gate passed"
+          # REAL: send aggregated SARIF/JSON to Anthropic API (or DefectDojo AI triage)
+          echo "### 🤖 AI Security Triage — ✅ noise -75%, 0 blocking" >> "$GITHUB_STEP_SUMMARY"
+
+  # ============ STAGE 5: DEPLOY (text only — no real deployment) ============
+  deploy:
+    name: 🚀 Deploy
+    runs-on: ubuntu-latest
+    needs: ai-triage
+    environment: ${{ github.event.inputs.environment || 'staging' }}
+    steps:
+      - run: |
+          ENV="${{ github.event.inputs.environment || 'staging' }}"; TAG="${GITHUB_SHA::7}"
+          echo "🤖 AI release notes: summarized 3 commits → changelog generated"
+          echo "Promoting signed image to: $ENV (ArgoCD sync + progressive rollout)..."; sleep 2
+          echo ""
+          echo "  ✅ DEPLOYED SUCCESSFULLY"
+          echo "  app:         $APP_NAME"
+          echo "  image:       $IMAGE:$TAG"
+          echo "  environment: $ENV"
+          echo "  url:         https://$ENV.$APP_NAME.example.com"
+          echo "  status:      Healthy · canary 100% · 0 rollbacks"
+          # REAL: ArgoCD sync + Argo Rollouts promote
+          {
+            echo "## 🚀 Deploy — ✅ SUCCESS"; echo ""
+            echo "| Field | Value |"; echo "|-------|-------|"
+            echo "| App | \`$APP_NAME\` |"; echo "| Image | \`$IMAGE:$TAG\` |"
+            echo "| Environment | \`$ENV\` |"
+            echo "| URL | https://$ENV.$APP_NAME.example.com |"
+            echo "| Status | Healthy ✅ |"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  # ============ 🤖 AIOps ANOMALY WATCH (post-deploy) ============
+  ai-anomaly:
+    name: 🤖 AI Anomaly Watch
+    runs-on: ubuntu-latest
+    needs: deploy
+    steps:
+      - run: |
+          echo "🤖 Baselining golden signals (latency/error/traffic/saturation) for 60s..."; sleep 3
+          echo "No anomalies vs 7-day model · error rate nominal"
+          echo "✅ Release stable — no auto-rollback triggered"
+          # REAL: Prometheus + anomaly detection / Claude-assisted RCA
+          echo "### 🤖 AI Anomaly Watch — ✅ release stable" >> "$GITHUB_STEP_SUMMARY"
+
+  # ============ PIPELINE SUMMARY ============
+  report:
+    name: 📊 Pipeline Report
+    runs-on: ubuntu-latest
+    needs: [deploy, ai-anomaly]
+    if: always()
+    steps:
+      - run: |
+          {
+            echo "## 📊 AI-Enabled DevSecOps — Gate Summary"; echo ""
+            echo "| Stage | Type | Tool (prod) | Result |"
+            echo "|-------|------|-------------|--------|"
+            echo "| Secret scan | DevSecOps | gitleaks | ✅ |"
+            echo "| SAST | DevSecOps | Semgrep/CodeQL | ✅ |"
+            echo "| SCA | DevSecOps | Trivy | ✅ |"
+            echo "| IaC scan | DevSecOps | Checkov/tfsec | ✅ |"
+            echo "| **AI code review** | 🤖 AI | Claude / CodeRabbit | ✅ |"
+            echo "| **AI test generation** | 🤖 AI | Claude | ✅ |"
+            echo "| Build | DevSecOps | BuildKit | ✅ |"
+            echo "| Image scan | DevSecOps | Trivy | ✅ |"
+            echo "| SBOM + Sign | DevSecOps | Syft + Cosign | ✅ |"
+            echo "| DAST | DevSecOps | OWASP ZAP | ✅ |"
+            echo "| **AI security triage** | 🤖 AI | Claude / DefectDojo | ✅ |"
+            echo "| Deploy | DevSecOps | ArgoCD + Rollouts | ✅ |"
+            echo "| **AI anomaly watch** | 🤖 AI | Prometheus + Claude | ✅ |"
+            echo ""
+            echo "_4 AI stages woven across review → test → triage → operate._"
+          } >> "$GITHUB_STEP_SUMMARY"
+          echo "✅ Pipeline complete — all gates green."
