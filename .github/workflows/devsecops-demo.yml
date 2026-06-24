@@ -1,9 +1,7 @@
 name: AI-Enabled DevSecOps Pipeline (Demo / POC)
 
-# Demo pipeline — every stage is SIMULATED so it always runs green and fast.
-# DevSecOps gates are marked with shields; the AI-enabled stages are marked 🤖.
-# No cloud/registry/cluster needed. "deploy" just prints success.
-# Each stage has a "# REAL:" line showing the production action to swap in.
+# Demo pipeline — every stage is SIMULATED so it always runs green.
+
 
 on:
   push:
