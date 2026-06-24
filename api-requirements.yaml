@@ -1,0 +1,56 @@
+# =====================================================================
+#  API REQUIREMENT  —  upload / commit this file to trigger the flow.
+#  On change under requirements/**, the pipeline:
+#    1. AI reads this file and generates docs/generated/DESIGN.md
+#    2. Pauses for human approval (design-approval environment)
+#    3. On approval, builds + scans + deploys the API
+# =====================================================================
+
+api:
+  name: Loan Fulfillment API
+  version: "1.0"
+  owner: lending-platform-team
+  description: >
+    Service to submit, review, and track loan applications as part of the
+    Digital Fulfillment System.
+
+endpoints:
+  - method: GET
+    path: /health
+    purpose: Liveness/readiness probe
+  - method: POST
+    path: /api/loans
+    purpose: Submit a new loan application
+    request: { applicant: string, amount: number }
+  - method: GET
+    path: /api/loans/{id}
+    purpose: Retrieve a loan application and its status
+
+data_model:
+  LoanApplication:
+    id: string
+    applicant: string
+    amount: decimal
+    status: "enum [SUBMITTED, UNDER_REVIEW, APPROVED, REJECTED]"
+
+non_functional:
+  security:
+    - OAuth2 / JWT bearer authentication
+    - TLS 1.2+ only
+    - Input validation on all write endpoints
+    - Rate limiting (100 req/min/client)
+    - No PII written to logs
+  performance:
+    p95_latency_ms: 200
+  availability: "99.9%"
+
+compliance:
+  - SOC 2 Type II
+  - PII handling per data-protection policy
+
+acceptance_criteria:
+  - All endpoints return correct status codes and schemas
+  - Invalid POST payloads rejected with HTTP 400 + validation detail
+  - Container runs as a non-root user
+  - Image passes security scan with no fixable HIGH/CRITICAL CVEs
+  - Health endpoint returns 200 for readiness

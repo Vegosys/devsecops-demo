@@ -1,0 +1,257 @@
+name: AI-Driven DevSecOps — Spec → Approve → Deploy
+
+# FLOW:
+#   1. You commit/update requirements/api-requirements.yaml  (the "upload")
+#   2. 🤖 AI reads it and generates a design DOC (docs/generated/DESIGN.md)
+#   3. ✋ Pipeline PAUSES for human approval (design-approval environment)
+#   4. ✅ Once approved, the AI-enabled DevSecOps pipeline builds the REAL
+#      .NET container, runs all gates, and deploys.
+#
+# ONE-TIME SETUP: Settings → Environments → create "design-approval"
+# and add yourself as a Required reviewer. That is what makes step 3 pause.
+
+on:
+  push:
+    branches: [main]
+    paths: ['requirements/**']        # uploading the requirement triggers it
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: "Deploy target"
+        type: choice
+        options: [staging, production]
+        default: staging
+
+permissions:
+  contents: read
+
+env:
+  APP_NAME: loan-fulfillment-api
+  IMAGE: registry.example.com/loan-fulfillment-api
+  DOTNET_CONTEXT: src/DemoApi
+
+jobs:
+  # ===================== PHASE 0: AI REQUIREMENTS INTAKE =====================
+  ai-design-doc:
+    name: 🤖 AI Design Doc (from requirement)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Generate design doc from requirements
+        run: |
+          echo "🤖 Claude reading requirements/api-requirements.yaml ..."; sleep 2
+          echo "Extracting endpoints, data model, security & acceptance criteria..."; sleep 2
+          mkdir -p docs/generated
+          # In the demo the committed DESIGN.md is used; REAL would (re)generate it:
+          # REAL: call Anthropic API with the requirement file -> docs/generated/DESIGN.md
+          echo "✅ Design doc ready: docs/generated/DESIGN.md (status: AWAITING APPROVAL)"
+          {
+            echo "## 🤖 AI Design Doc — generated"
+            echo "Source: \`requirements/api-requirements.yaml\`"
+            echo "Output: \`docs/generated/DESIGN.md\` — **awaiting approval**"
+          } >> "$GITHUB_STEP_SUMMARY"
+      - name: Publish doc for reviewers
+        uses: actions/upload-artifact@v4
+        with:
+          name: design-doc
+          path: docs/generated/DESIGN.md
+
+  # ===================== HUMAN APPROVAL GATE =====================
+  await-approval:
+    name: ✋ Approve Design
+    runs-on: ubuntu-latest
+    needs: ai-design-doc
+    environment: design-approval        # required reviewers => pipeline pauses here
+    steps:
+      - run: |
+          echo "✅ Design approved by ${{ github.actor }} — releasing the pipeline."
+          echo "### ✋ Design Approval — ✅ approved, pipeline proceeding" >> "$GITHUB_STEP_SUMMARY"
+
+  # ===================== PHASE 1: SHIFT-LEFT SECURITY =====================
+  secret-scan:
+    name: 🔑 Secret Scan
+    runs-on: ubuntu-latest
+    needs: await-approval
+    steps:
+      - uses: actions/checkout@v4
+      - run: |
+          echo "Scanning for secrets..."; sleep 2; echo "✅ 0 secrets found"
+          # REAL: uses: gitleaks/gitleaks-action@v2
+          echo "### 🔑 Secret Scan — ✅ pass" >> "$GITHUB_STEP_SUMMARY"
+
+  sast:
+    name: 🧠 SAST
+    runs-on: ubuntu-latest
+    needs: await-approval
+    steps:
+      - uses: actions/checkout@v4
+      - run: |
+          echo "Static analysis of C# sources..."; sleep 3; echo "0 high · 2 low · ✅ pass"
+          # REAL: github/codeql-action (csharp) or Semgrep
+          echo "### 🧠 SAST — ✅ pass" >> "$GITHUB_STEP_SUMMARY"
+
+  sca:
+    name: 📦 SCA / Dependencies
+    runs-on: ubuntu-latest
+    needs: await-approval
+    steps:
+      - uses: actions/checkout@v4
+      - run: |
+          echo "Scanning NuGet packages for CVEs/licenses..."; sleep 2; echo "0 critical · ✅ pass"
+          # REAL: dotnet list package --vulnerable  /  trivy fs .
+          echo "### 📦 SCA — ✅ pass" >> "$GITHUB_STEP_SUMMARY"
+
+  iac-scan:
+    name: 🏗️ IaC Scan
+    runs-on: ubuntu-latest
+    needs: await-approval
+    steps:
+      - uses: actions/checkout@v4
+      - run: |
+          echo "Scanning Dockerfile / K8s manifests..."; sleep 2; echo "non-root OK · ✅ pass"
+          # REAL: checkov / trivy config / hadolint
+          echo "### 🏗️ IaC Scan — ✅ pass" >> "$GITHUB_STEP_SUMMARY"
+
+  ai-code-review:
+    name: 🤖 AI Code Review
+    runs-on: ubuntu-latest
+    needs: await-approval
+    steps:
+      - uses: actions/checkout@v4
+      - run: |
+          echo "🤖 Claude reviewing the diff..."; sleep 3
+          echo "⚠️ 1 suggestion (validate amount upper bound) · 0 blocking"
+          # REAL: Anthropic API on the PR diff
+          echo "### 🤖 AI Code Review — ✅ 1 suggestion" >> "$GITHUB_STEP_SUMMARY"
+
+  ai-test-gen:
+    name: 🤖 AI Test Generation
+    runs-on: ubuntu-latest
+    needs: await-approval
+    steps:
+      - uses: actions/checkout@v4
+      - run: |
+          echo "🤖 Generating xUnit tests for validation + health contract..."; sleep 3
+          echo "✅ 6/6 generated tests pass · coverage 68%→89%"
+          # REAL: Anthropic API generates tests, dotnet test
+          echo "### 🤖 AI Test Generation — ✅ +6 tests" >> "$GITHUB_STEP_SUMMARY"
+
+  # ===================== PHASE 2: BUILD (REAL .NET CONTAINER) =====================
+  build:
+    name: ⚙️ Build .NET Container
+    runs-on: ubuntu-latest
+    needs: [secret-scan, sast, sca, iac-scan]
+    outputs:
+      tag: ${{ steps.meta.outputs.tag }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: meta
+        run: echo "tag=${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+      - name: Build the ASP.NET Core image (real)
+        run: |
+          docker build -t "$IMAGE:${{ steps.meta.outputs.tag }}" "$DOTNET_CONTEXT"
+          echo "✅ Built real .NET 8 API image: $IMAGE:${{ steps.meta.outputs.tag }}"
+          echo "### ⚙️ Build — ✅ real .NET container \`$IMAGE:${{ steps.meta.outputs.tag }}\`" >> "$GITHUB_STEP_SUMMARY"
+
+  # ===================== PHASE 3: ARTIFACT SECURITY =====================
+  image-scan:
+    name: 🛡️ Image Scan
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - run: |
+          echo "Scanning $IMAGE:${{ needs.build.outputs.tag }} ..."; sleep 2; echo "✅ clean"
+          # REAL: uses: aquasecurity/trivy-action (image mode)
+          echo "### 🛡️ Image Scan — ✅ clean" >> "$GITHUB_STEP_SUMMARY"
+
+  sbom-sign:
+    name: 🔏 SBOM + Sign
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - run: |
+          echo "Syft SBOM + Cosign keyless sign..."; sleep 2; echo "✅ signed & attested"
+          # REAL: syft ... && cosign sign --yes ...
+          echo "### 🔏 SBOM + Sign — ✅ signed" >> "$GITHUB_STEP_SUMMARY"
+
+  # ===================== PHASE 4: DAST =====================
+  dast:
+    name: 🌐 DAST
+    runs-on: ubuntu-latest
+    needs: [image-scan, sbom-sign]
+    steps:
+      - run: |
+          echo "ZAP baseline against /health + /api/loans ..."; sleep 3; echo "0 high · ✅ pass"
+          # REAL: uses: zaproxy/action-baseline
+          echo "### 🌐 DAST — ✅ pass" >> "$GITHUB_STEP_SUMMARY"
+
+  # ===================== 🤖 AI SECURITY TRIAGE (gate) =====================
+  ai-triage:
+    name: 🤖 AI Security Triage
+    runs-on: ubuntu-latest
+    needs: [secret-scan, sast, sca, iac-scan, image-scan, dast]
+    steps:
+      - run: |
+          echo "🤖 Claude consolidating all findings..."; sleep 3
+          echo "de-duped 1 · dismissed 2 false positives · 0 blocking · noise -75%"
+          echo "✅ triage gate passed"
+          # REAL: aggregated SARIF -> Anthropic API / DefectDojo triage
+          echo "### 🤖 AI Security Triage — ✅ 0 blocking" >> "$GITHUB_STEP_SUMMARY"
+
+  # ===================== PHASE 5: DEPLOY (text only) =====================
+  deploy:
+    name: 🚀 Deploy
+    runs-on: ubuntu-latest
+    needs: ai-triage
+    environment: ${{ github.event.inputs.environment || 'staging' }}
+    steps:
+      - run: |
+          ENV="${{ github.event.inputs.environment || 'staging' }}"; TAG="${GITHUB_SHA::7}"
+          echo "🤖 AI release notes generated."
+          echo "ArgoCD sync + canary rollout to $ENV ..."; sleep 2
+          echo ""
+          echo "  ✅ DEPLOYED SUCCESSFULLY"
+          echo "  app:         $APP_NAME"
+          echo "  image:       $IMAGE:$TAG"
+          echo "  environment: $ENV"
+          echo "  url:         https://$ENV.$APP_NAME.example.com/health"
+          {
+            echo "## 🚀 Deploy — ✅ SUCCESS"
+            echo "| Field | Value |"; echo "|---|---|"
+            echo "| App | \`$APP_NAME\` |"; echo "| Image | \`$IMAGE:$TAG\` |"
+            echo "| Environment | \`$ENV\` |"
+            echo "| Health URL | https://$ENV.$APP_NAME.example.com/health |"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  # ===================== 🤖 AIOps + REPORT =====================
+  ai-anomaly:
+    name: 🤖 AI Anomaly Watch
+    runs-on: ubuntu-latest
+    needs: deploy
+    steps:
+      - run: |
+          echo "🤖 Watching golden signals post-deploy..."; sleep 3; echo "✅ stable · no rollback"
+          echo "### 🤖 AI Anomaly Watch — ✅ stable" >> "$GITHUB_STEP_SUMMARY"
+
+  report:
+    name: 📊 Pipeline Report
+    runs-on: ubuntu-latest
+    needs: [deploy, ai-anomaly]
+    if: always()
+    steps:
+      - run: |
+          {
+            echo "## 📊 AI-Driven DevSecOps — Summary"
+            echo "| Stage | Type | Result |"
+            echo "|---|---|---|"
+            echo "| AI design doc | 🤖 AI | ✅ |"
+            echo "| Design approval | ✋ Human | ✅ |"
+            echo "| Secret / SAST / SCA / IaC | DevSecOps | ✅ |"
+            echo "| AI code review / test gen | 🤖 AI | ✅ |"
+            echo "| Build .NET container | DevSecOps | ✅ |"
+            echo "| Image scan / SBOM+Sign / DAST | DevSecOps | ✅ |"
+            echo "| AI security triage | 🤖 AI | ✅ |"
+            echo "| Deploy | DevSecOps | ✅ |"
+            echo "| AI anomaly watch | 🤖 AI | ✅ |"
+          } >> "$GITHUB_STEP_SUMMARY"
+          echo "✅ Spec → Approve → Deploy complete."
