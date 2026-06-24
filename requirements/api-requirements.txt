@@ -1,0 +1,5 @@
+API Service
+---------------------------
+
+Hi team,
+We want to build a simple hello work API , the route /hello - should say hello + date & time, The api should also ohave a health check on /healthz
