@@ -1,0 +1,31 @@
+Loan service - what we need
+---------------------------
+
+Hi team,
+
+We want to build a simple online service for our loan product. Right now everything
+runs on email and spreadsheets and it's becoming a mess.
+
+Here's what it should do:
+
+- A customer should be able to apply for a loan online. They'll give us their name and
+  how much they want to borrow.
+- After they apply, we (and they) should be able to look the application up later and see
+  where it stands - still being reviewed, approved, or rejected.
+- Our ops team needs to check the status of any application quickly.
+
+Things that matter to us:
+
+- It has to be secure. This is people's financial information - we cannot have data leaking.
+- It should be fast and shouldn't go down, especially during business hours.
+- We have a SOC 2 audit coming up, so whatever we build needs to keep us compliant.
+- Please don't store or log people's personal details in plain text anywhere.
+
+We don't have strong opinions on the technology - that's your call. Just make it solid
+and easy to run.
+
+Loan amounts are usually between ten thousand and a few crore. Anything outside a sensible
+range should just be rejected.
+
+Thanks,
+Priya (Product)

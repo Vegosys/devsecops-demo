@@ -1,8 +1,9 @@
 name: AI-Driven DevSecOps — Spec → Approve → Deploy
 
 # FLOW:
-#   1. You commit/update requirements/api-requirements.yaml  (the "upload")
-#   2. 🤖 AI reads it and generates a design DOC (docs/generated/DESIGN.md)
+#   1. A non-technical stakeholder uploads a plain-text brief
+#      (requirements/api-requirement.txt) describing what they want, in plain English
+#   2. 🤖 AI interprets it and generates a technical design DOC (docs/generated/DESIGN.md)
 #   3. ✋ Pipeline PAUSES for human approval (design-approval environment)
 #   4. ✅ Once approved, the AI-enabled DevSecOps pipeline builds the REAL
 #      .NET container, runs all gates, and deploys.
@@ -37,17 +38,17 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Generate design doc from requirements
+      - name: Generate design doc from the plain-text brief
         run: |
-          echo "🤖 Claude reading requirements/api-requirements.yaml ..."; sleep 2
-          echo "Extracting endpoints, data model, security & acceptance criteria..."; sleep 2
+          echo "🤖 Claude reading the plain-language brief (requirements/api-requirement.txt)..."; sleep 2
+          echo "Interpreting intent → endpoints, data model, security & acceptance criteria..."; sleep 2
           mkdir -p docs/generated
           # In the demo the committed DESIGN.md is used; REAL would (re)generate it:
-          # REAL: call Anthropic API with the requirement file -> docs/generated/DESIGN.md
+          # REAL: send the plain-text brief to the Anthropic API -> docs/generated/DESIGN.md
           echo "✅ Design doc ready: docs/generated/DESIGN.md (status: AWAITING APPROVAL)"
           {
-            echo "## 🤖 AI Design Doc — generated"
-            echo "Source: \`requirements/api-requirements.yaml\`"
+            echo "## 🤖 AI Design Doc — generated from a plain-text brief"
+            echo "Source: \`requirements/api-requirement.txt\` (written by a non-technical stakeholder)"
             echo "Output: \`docs/generated/DESIGN.md\` — **awaiting approval**"
           } >> "$GITHUB_STEP_SUMMARY"
       - name: Publish doc for reviewers
