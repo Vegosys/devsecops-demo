@@ -14,7 +14,10 @@
       "Bash(nslookup -type=TXT _github-pages-challenge-Vegosys.pointbase.shop)",
       "Bash(host -t TXT _github-pages-challenge-Vegosys.pointbase.shop)",
       "Bash(git add *)",
-      "Bash(git commit -m ' *)"
+      "Bash(git commit -m ' *)",
+      "Bash(docker version *)",
+      "Bash(dotnet --version)",
+      "Bash(git mv *)"
     ]
   }
 }
