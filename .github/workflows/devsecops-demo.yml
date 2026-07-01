@@ -44,6 +44,8 @@ jobs:
       req_type: ${{ steps.detect.outputs.req_type }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - name: Detect which requirement changed
         id: detect
         run: |
@@ -53,8 +55,7 @@ jobs:
             echo "req_file=" >> "$GITHUB_OUTPUT"
             echo "req_type=none" >> "$GITHUB_OUTPUT"
           else
-            FILE=$(echo '${{ toJson(github.event.commits) }}' | jq -r '
-              [.[] | (.added + .modified)[]] | map(select(startswith("requirements/"))) | last // empty')
+            FILE=$(git diff --name-only "${{ github.event.before }}" "${{ github.sha }}" -- requirements/ 2>/dev/null | tail -1)
             echo "req_file=$FILE" >> "$GITHUB_OUTPUT"
             case "$FILE" in
               *webpage*) echo "req_type=webpage" >> "$GITHUB_OUTPUT" ;;
