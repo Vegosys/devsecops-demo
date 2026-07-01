@@ -17,13 +17,13 @@ src/DemoApi/                             # a REAL ASP.NET Core (.NET 8) API + Do
 ## The flow
 1. **Upload requirement** — a non-technical stakeholder commits a plain-text brief under
    `requirements/*.txt` (plain English) and pushes to `main`.
-2. **AI design doc** — the `ai-design-doc` job detects which requirement changed and publishes
-   the matching `docs/generated/DESIGN.md` as a run artifact. *In production this is a real
-   Anthropic API call reading the brief's actual text, not just its filename.*
+2. **AI design doc** — the `ai-design-doc` job detects which requirement changed and calls the
+   real Anthropic API with the brief's actual text to write `docs/generated/DESIGN.md`, published
+   as a run artifact. Falls back to a pre-written doc if `ANTHROPIC_API_KEY` isn't set.
 3. **Approval gate** — the pipeline pauses at the `await-approval` job until a reviewer approves.
-4. **AI writes the code** — the `codegen` job materializes the approved design (from `templates/`)
-   into `site/` or `src/DemoApi/` and **commits + pushes it to `main` itself**. *In production
-   this is a real Anthropic API call instead of a template copy.*
+4. **AI writes the code** — the `codegen` job calls the real Anthropic API with the brief + the
+   approved design doc to generate the actual code, and **commits + pushes it to `main` itself**.
+   Falls back to copying `templates/` if `ANTHROPIC_API_KEY` isn't set.
 5. **Pipeline runs (against the fresh code)** — security scans + AI review/test →
    **real `docker build` of the .NET API** → image scan / SBOM / sign → DAST → AI triage →
    **real deploy to GitHub Pages** → AI anomaly watch.
@@ -54,17 +54,22 @@ GitHub → **Settings → Branches** → confirm `main` allows Actions to push d
 required-PR protection blocking the `github-actions[bot]` actor). That is what lets the
 `codegen` job commit its generated code straight to `main`.
 
+GitHub → **Settings → Secrets and variables → Actions → New repository secret** → name
+`ANTHROPIC_API_KEY`, value = a valid Anthropic API key. That is what makes `ai-design-doc` and
+`codegen` call the real API. If unset, both jobs fall back to their simulated behavior (a
+pre-written doc / a `templates/` copy) instead of failing.
+
 ## Run it in a demo
 - **Path A (the story):** tweak `requirements/api-requirement.txt` (or drop a new brief in), commit, push →
   watch the AI turn it into a design doc → approve in the Actions UI → pipeline completes.
 - **Path B (manual):** Actions tab → *Run workflow* → pick `staging` or `production`.
 
 ## Real vs simulated
-- **Real:** the .NET API, the Dockerfile, the `docker build` in the Build stage, and the
-  GitHub Pages deploy.
-- **Simulated (with `# REAL:` swap-in lines):** the AI design doc, the `codegen` job (template
-  copy instead of an Anthropic API call), scanners, DAST.
-  Each prints realistic output and shows the production action it maps to.
+- **Real:** the .NET API, the Dockerfile, the `docker build` in the Build stage, the
+  GitHub Pages deploy, and the AI design doc / `codegen` **when `ANTHROPIC_API_KEY` is set**.
+- **Simulated (with `# REAL:` swap-in lines, or automatic fallback):** the AI design doc /
+  `codegen` when the secret is unset (pre-written doc / `templates/` copy instead of a real API
+  call), scanners, DAST. Each prints realistic output and shows the production action it maps to.
 
 ## Local sanity check (optional)
 ```bash

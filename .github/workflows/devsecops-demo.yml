@@ -65,23 +65,13 @@ jobs:
             esac
           fi
       - name: Generate design doc from the plain-text brief
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
         run: |
-          echo "🤖 Claude reading the plain-language brief (${{ steps.detect.outputs.req_file }})..."; sleep 2
-          echo "Interpreting intent → endpoints, data model, security & acceptance criteria..."; sleep 2
-          mkdir -p docs/generated
-          # In the demo pre-written docs are selected by type; REAL would (re)generate one:
-          # REAL: send the plain-text brief to the Anthropic API -> docs/generated/DESIGN.md
-          case "${{ steps.detect.outputs.req_type }}" in
-            webpage) cp docs/generated/todo-webpage-design.md docs/generated/DESIGN.md ;;
-            api)     cp docs/generated/api-design.md docs/generated/DESIGN.md ;;
-            none)    [ -f docs/generated/DESIGN.md ] || echo "# No design doc yet — run against a requirement push first." > docs/generated/DESIGN.md ;;
-            *)       {
-                       echo "# Design Document — unrecognized requirement type"
-                       echo ""
-                       echo "Requirement file \`${{ steps.detect.outputs.req_file }}\` doesn't match a known template (\`webpage\` or \`api\`)."
-                       echo "The AI codegen simulation has no template for this — approving here just lets the pipeline continue against whatever code already exists; a human author or a real AI call is required to actually implement it."
-                     } > docs/generated/DESIGN.md ;;
-          esac
+          echo "🤖 Claude reading the plain-language brief (${{ steps.detect.outputs.req_file }})..."
+          python3 scripts/call_claude_design.py \
+            --req-file "${{ steps.detect.outputs.req_file }}" \
+            --req-type "${{ steps.detect.outputs.req_type }}"
           echo "✅ Design doc ready: docs/generated/DESIGN.md (status: AWAITING APPROVAL)"
           {
             echo "## 🤖 AI Design Doc — generated from a plain-text brief"
@@ -119,17 +109,20 @@ jobs:
         with:
           ref: main
           fetch-depth: 0
-      - name: Simulated AI codegen — copy from templates/
+      - name: Download approved design doc
+        uses: actions/download-artifact@v4
+        with:
+          name: design-doc
+          path: artifacts/design-doc
+      - name: AI codegen — write the approved design
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
         run: |
-          TYPE="${{ needs.ai-design-doc.outputs.req_type }}"
-          echo "🤖 Claude writing code for requirement type: $TYPE ..."; sleep 2
-          # REAL: send requirements/<file> + the approved docs/generated/DESIGN.md to the
-          # Anthropic API and write its output to these same paths, instead of `cp -r`.
-          if [ "$TYPE" = "webpage" ]; then
-            cp -r templates/webpage/site/. site/
-          elif [ "$TYPE" = "api" ]; then
-            cp -r templates/api/src/DemoApi/. src/DemoApi/
-          fi
+          echo "🤖 Claude writing code for requirement type: ${{ needs.ai-design-doc.outputs.req_type }} ..."
+          python3 scripts/call_claude_codegen.py \
+            --req-file "${{ needs.ai-design-doc.outputs.req_file }}" \
+            --design-doc artifacts/design-doc/DESIGN.md \
+            --req-type "${{ needs.ai-design-doc.outputs.req_type }}"
       - name: Commit and push generated code
         run: |
           git config user.name "ai-devsecops-bot"
