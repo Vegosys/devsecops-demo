@@ -14,7 +14,7 @@ name: AI-Driven DevSecOps — Spec → Approve → Deploy
 on:
   push:
     branches: [main]
-    paths: ['requirements/**']        # uploading the requirement triggers it
+    paths: ['requirements/**', 'site/**']   # requirement or webpage change triggers it
   workflow_dispatch:
     inputs:
       environment:
@@ -199,29 +199,38 @@ jobs:
           # REAL: aggregated SARIF -> Anthropic API / DefectDojo triage
           echo "### 🤖 AI Security Triage — ✅ 0 blocking" >> "$GITHUB_STEP_SUMMARY"
 
-  # ===================== PHASE 5: DEPLOY (text only) =====================
+  # ===================== PHASE 5: DEPLOY (real — GitHub Pages) =====================
   deploy:
     name: 🚀 Deploy
     runs-on: ubuntu-latest
     needs: ai-triage
-    environment: ${{ github.event.inputs.environment || 'staging' }}
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
     steps:
+      - uses: actions/checkout@v4
+      - run: echo "🤖 AI release notes generated."
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
       - run: |
-          ENV="${{ github.event.inputs.environment || 'staging' }}"; TAG="${GITHUB_SHA::7}"
-          echo "🤖 AI release notes generated."
-          echo "ArgoCD sync + canary rollout to $ENV ..."; sleep 2
           echo ""
           echo "  ✅ DEPLOYED SUCCESSFULLY"
-          echo "  app:         $APP_NAME"
-          echo "  image:       $IMAGE:$TAG"
-          echo "  environment: $ENV"
-          echo "  url:         https://$ENV.$APP_NAME.example.com/health"
+          echo "  app: todo-list-webpage"
+          echo "  url: ${{ steps.deployment.outputs.page_url }}"
           {
             echo "## 🚀 Deploy — ✅ SUCCESS"
             echo "| Field | Value |"; echo "|---|---|"
-            echo "| App | \`$APP_NAME\` |"; echo "| Image | \`$IMAGE:$TAG\` |"
-            echo "| Environment | \`$ENV\` |"
-            echo "| Health URL | https://$ENV.$APP_NAME.example.com/health |"
+            echo "| App | \`todo-list-webpage\` |"
+            echo "| URL | ${{ steps.deployment.outputs.page_url }} |"
           } >> "$GITHUB_STEP_SUMMARY"
 
   # ===================== 🤖 AIOps + REPORT =====================

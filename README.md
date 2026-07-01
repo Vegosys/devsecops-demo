@@ -26,7 +26,10 @@ src/DemoApi/                             # a REAL ASP.NET Core (.NET 8) API + Do
 ## One-time setup (required for the pause to work)
 GitHub → **Settings → Environments → New environment → `design-approval`** →
 add yourself (or a team) as a **Required reviewer**. That is what makes step 3 stop and wait.
-(The `deploy` job also uses a `staging`/`production` environment — optional protection.)
+
+GitHub → **Settings → Pages → Source: GitHub Actions**. That is what lets the `deploy` job
+publish `site/` (the todo list webpage, from `requirements/webpage-requirement.txt`) to
+GitHub Pages — the one real deploy target in this demo.
 
 ## Run it in a demo
 - **Path A (the story):** tweak `requirements/api-requirement.txt` (or drop a new brief in), commit, push →

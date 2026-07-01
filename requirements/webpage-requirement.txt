@@ -1,0 +1,19 @@
+Todo list webpage - what we need
+---------------------------------
+
+Hi team,
+
+For the demo, we'd like a simple todo list webpage.
+
+Here's what it should do:
+
+- Let someone type in a task and add it to a list.
+- Let them check a task off as done (show it crossed out or similar).
+- Let them delete a task they no longer need.
+- Remember the list if they close the tab and come back later.
+
+Nothing fancy - no login, no backend, no database. Just something that runs
+entirely in the browser and can be hosted as a static page.
+
+Thanks,
+Priya (Product)
