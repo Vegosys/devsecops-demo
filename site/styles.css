@@ -20,6 +20,7 @@ body {
 h1 {
   text-align: center;
   margin-bottom: 1.5rem;
+  color: #000;
 }
 
 #add-form {
@@ -34,6 +35,8 @@ h1 {
   font-size: 1rem;
   border: 1px solid #ccc;
   border-radius: 6px;
+  background: #fff;
+  color: #000;
 }
 
 #add-form button {
