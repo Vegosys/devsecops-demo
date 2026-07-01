@@ -1,0 +1,20 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git ls-remote *)",
+      "Bash(python3 -c \"import yaml,sys; yaml.safe_load\\(open\\('.github/workflows/devsecops-demo.yml'\\)\\); yaml.safe_load\\(open\\('ai-devsecops-pipeline.yml'\\)\\); print\\('YAML OK'\\)\")",
+      "Bash(pip install *)",
+      "Bash(python3 -m http.server 8123)",
+      "Bash(curl -s localhost:8123/)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" localhost:8123/styles.css)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" localhost:8123/app.js)",
+      "Bash(python3 -c \"import playwright\")",
+      "Bash(kill %1)",
+      "Bash(dig +short TXT _github-pages-challenge-Vegosys.pointbase.shop)",
+      "Bash(nslookup -type=TXT _github-pages-challenge-Vegosys.pointbase.shop)",
+      "Bash(host -t TXT _github-pages-challenge-Vegosys.pointbase.shop)",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)"
+    ]
+  }
+}
