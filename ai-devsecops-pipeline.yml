@@ -2,14 +2,17 @@ name: AI-Driven DevSecOps — Spec → Approve → Deploy
 
 # FLOW:
 #   1. A non-technical stakeholder uploads a plain-text brief
-#      (requirements/api-requirement.txt) describing what they want, in plain English
+#      (requirements/*.txt) describing what they want, in plain English
 #   2. 🤖 AI interprets it and generates a technical design DOC (docs/generated/DESIGN.md)
 #   3. ✋ Pipeline PAUSES for human approval (design-approval environment)
-#   4. ✅ Once approved, the AI-enabled DevSecOps pipeline builds the REAL
-#      .NET container, runs all gates, and deploys.
+#   4. 🤖 Once approved, AI WRITES THE CODE (codegen job) and commits it to main
+#   5. ✅ The AI-enabled DevSecOps pipeline runs all gates against the fresh code,
+#      builds the REAL .NET container, and deploys.
 #
 # ONE-TIME SETUP: Settings → Environments → create "design-approval"
 # and add yourself as a Required reviewer. That is what makes step 3 pause.
+# Also confirm Settings → Branches allows Actions to push directly to main
+# (no required-PR protection), or the codegen job's push will be rejected.
 
 on:
   push:
@@ -36,19 +39,53 @@ jobs:
   ai-design-doc:
     name: 🤖 AI Design Doc (from requirement)
     runs-on: ubuntu-latest
+    outputs:
+      req_file: ${{ steps.detect.outputs.req_file }}
+      req_type: ${{ steps.detect.outputs.req_type }}
     steps:
       - uses: actions/checkout@v4
+      - name: Detect which requirement changed
+        id: detect
+        run: |
+          # REAL: a real AI call would read the brief's actual text to decide type/content,
+          # not just its filename.
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "req_file=" >> "$GITHUB_OUTPUT"
+            echo "req_type=none" >> "$GITHUB_OUTPUT"
+          else
+            FILE=$(echo '${{ toJson(github.event.commits) }}' | jq -r '
+              [.[] | (.added + .modified)[]] | map(select(startswith("requirements/"))) | last // empty')
+            echo "req_file=$FILE" >> "$GITHUB_OUTPUT"
+            case "$FILE" in
+              *webpage*) echo "req_type=webpage" >> "$GITHUB_OUTPUT" ;;
+              *api*)     echo "req_type=api" >> "$GITHUB_OUTPUT" ;;
+              "")        echo "req_type=none" >> "$GITHUB_OUTPUT" ;;
+              *)         echo "req_type=unknown" >> "$GITHUB_OUTPUT" ;;
+            esac
+          fi
       - name: Generate design doc from the plain-text brief
         run: |
-          echo "🤖 Claude reading the plain-language brief (requirements/api-requirement.txt)..."; sleep 2
+          echo "🤖 Claude reading the plain-language brief (${{ steps.detect.outputs.req_file }})..."; sleep 2
           echo "Interpreting intent → endpoints, data model, security & acceptance criteria..."; sleep 2
           mkdir -p docs/generated
-          # In the demo the committed DESIGN.md is used; REAL would (re)generate it:
+          # In the demo pre-written docs are selected by type; REAL would (re)generate one:
           # REAL: send the plain-text brief to the Anthropic API -> docs/generated/DESIGN.md
+          case "${{ steps.detect.outputs.req_type }}" in
+            webpage) cp docs/generated/todo-webpage-design.md docs/generated/DESIGN.md ;;
+            api)     cp docs/generated/api-design.md docs/generated/DESIGN.md ;;
+            none)    [ -f docs/generated/DESIGN.md ] || echo "# No design doc yet — run against a requirement push first." > docs/generated/DESIGN.md ;;
+            *)       {
+                       echo "# Design Document — unrecognized requirement type"
+                       echo ""
+                       echo "Requirement file \`${{ steps.detect.outputs.req_file }}\` doesn't match a known template (\`webpage\` or \`api\`)."
+                       echo "The AI codegen simulation has no template for this — approving here just lets the pipeline continue against whatever code already exists; a human author or a real AI call is required to actually implement it."
+                     } > docs/generated/DESIGN.md ;;
+          esac
           echo "✅ Design doc ready: docs/generated/DESIGN.md (status: AWAITING APPROVAL)"
           {
             echo "## 🤖 AI Design Doc — generated from a plain-text brief"
-            echo "Source: \`requirements/api-requirement.txt\` (written by a non-technical stakeholder)"
+            echo "Source: \`${{ steps.detect.outputs.req_file || 'none (manual run)' }}\` (written by a non-technical stakeholder)"
+            echo "Type: \`${{ steps.detect.outputs.req_type }}\`"
             echo "Output: \`docs/generated/DESIGN.md\` — **awaiting approval**"
           } >> "$GITHUB_STEP_SUMMARY"
       - name: Publish doc for reviewers
@@ -68,13 +105,52 @@ jobs:
           echo "✅ Design approved by ${{ github.actor }} — releasing the pipeline."
           echo "### ✋ Design Approval — ✅ approved, pipeline proceeding" >> "$GITHUB_STEP_SUMMARY"
 
+  # ===================== 🤖 AI WRITES THE CODE (gated by approval) =====================
+  codegen:
+    name: 🤖 AI Codegen (write approved design)
+    runs-on: ubuntu-latest
+    needs: [ai-design-doc, await-approval]
+    if: needs.ai-design-doc.outputs.req_type == 'webpage' || needs.ai-design-doc.outputs.req_type == 'api'
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+      - name: Simulated AI codegen — copy from templates/
+        run: |
+          TYPE="${{ needs.ai-design-doc.outputs.req_type }}"
+          echo "🤖 Claude writing code for requirement type: $TYPE ..."; sleep 2
+          # REAL: send requirements/<file> + the approved docs/generated/DESIGN.md to the
+          # Anthropic API and write its output to these same paths, instead of `cp -r`.
+          if [ "$TYPE" = "webpage" ]; then
+            cp -r templates/webpage/site/. site/
+          elif [ "$TYPE" = "api" ]; then
+            cp -r templates/api/src/DemoApi/. src/DemoApi/
+          fi
+      - name: Commit and push generated code
+        run: |
+          git config user.name "ai-devsecops-bot"
+          git config user.email "ai-devsecops-bot@users.noreply.github.com"
+          git add site src/DemoApi
+          if git diff --cached --quiet; then
+            echo "No changes to commit (generated code already matches templates)."
+          else
+            git commit -m "🤖 AI codegen: apply ${{ needs.ai-design-doc.outputs.req_type }} template from ${{ needs.ai-design-doc.outputs.req_file }} [skip ci]"
+            git push origin HEAD:main
+          fi
+          echo "### 🤖 AI Codegen — committed generated code" >> "$GITHUB_STEP_SUMMARY"
+
   # ===================== PHASE 1: SHIFT-LEFT SECURITY =====================
   secret-scan:
     name: 🔑 Secret Scan
     runs-on: ubuntu-latest
-    needs: await-approval
+    needs: [await-approval, codegen]
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: main
       - run: |
           echo "Scanning for secrets..."; sleep 2; echo "✅ 0 secrets found"
           # REAL: uses: gitleaks/gitleaks-action@v2
@@ -83,9 +159,11 @@ jobs:
   sast:
     name: 🧠 SAST
     runs-on: ubuntu-latest
-    needs: await-approval
+    needs: [await-approval, codegen]
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: main
       - run: |
           echo "Static analysis of C# sources..."; sleep 3; echo "0 high · 2 low · ✅ pass"
           # REAL: github/codeql-action (csharp) or Semgrep
@@ -94,9 +172,11 @@ jobs:
   sca:
     name: 📦 SCA / Dependencies
     runs-on: ubuntu-latest
-    needs: await-approval
+    needs: [await-approval, codegen]
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: main
       - run: |
           echo "Scanning NuGet packages for CVEs/licenses..."; sleep 2; echo "0 critical · ✅ pass"
           # REAL: dotnet list package --vulnerable  /  trivy fs .
@@ -105,9 +185,11 @@ jobs:
   iac-scan:
     name: 🏗️ IaC Scan
     runs-on: ubuntu-latest
-    needs: await-approval
+    needs: [await-approval, codegen]
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: main
       - run: |
           echo "Scanning Dockerfile / K8s manifests..."; sleep 2; echo "non-root OK · ✅ pass"
           # REAL: checkov / trivy config / hadolint
@@ -116,9 +198,11 @@ jobs:
   ai-code-review:
     name: 🤖 AI Code Review
     runs-on: ubuntu-latest
-    needs: await-approval
+    needs: [await-approval, codegen]
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: main
       - run: |
           echo "🤖 Claude reviewing the diff..."; sleep 3
           echo "⚠️ 1 suggestion (validate amount upper bound) · 0 blocking"
@@ -128,9 +212,11 @@ jobs:
   ai-test-gen:
     name: 🤖 AI Test Generation
     runs-on: ubuntu-latest
-    needs: await-approval
+    needs: [await-approval, codegen]
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: main
       - run: |
           echo "🤖 Generating xUnit tests for validation + health contract..."; sleep 3
           echo "✅ 6/6 generated tests pass · coverage 68%→89%"
@@ -146,6 +232,8 @@ jobs:
       tag: ${{ steps.meta.outputs.tag }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: main
       - id: meta
         run: echo "tag=${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
       - name: Build the ASP.NET Core image (real)
@@ -213,6 +301,8 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: main
       - run: echo "🤖 AI release notes generated."
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
@@ -256,6 +346,7 @@ jobs:
             echo "|---|---|---|"
             echo "| AI design doc | 🤖 AI | ✅ |"
             echo "| Design approval | ✋ Human | ✅ |"
+            echo "| AI codegen | 🤖 AI | ✅ |"
             echo "| Secret / SAST / SCA / IaC | DevSecOps | ✅ |"
             echo "| AI code review / test gen | 🤖 AI | ✅ |"
             echo "| Build .NET container | DevSecOps | ✅ |"
