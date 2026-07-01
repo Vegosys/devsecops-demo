@@ -17,7 +17,11 @@
       "Bash(git commit -m ' *)",
       "Bash(docker version *)",
       "Bash(dotnet --version)",
-      "Bash(git mv *)"
+      "Bash(git mv *)",
+      "Bash(python3 -c \"import yaml; yaml.safe_load\\(open\\('.github/workflows/devsecops-demo.yml'\\)\\); print\\('YAML OK'\\)\")",
+      "Bash(python3 -c \"import yaml; yaml.safe_load\\(open\\('ai-devsecops-pipeline.yml'\\)\\); print\\('YAML OK'\\)\")",
+      "Bash(python3 -c \"import yaml; yaml.safe_load\\(open\\('.github/workflows/devsecops-demo.yml'\\)\\); yaml.safe_load\\(open\\('ai-devsecops-pipeline.yml'\\)\\); print\\('YAML OK'\\)\")",
+      "Bash(python3 -c ' *)"
     ]
   }
 }

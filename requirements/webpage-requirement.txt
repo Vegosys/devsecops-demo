@@ -17,3 +17,9 @@ entirely in the browser and can be hosted as a static page.
 
 Thanks,
 Priya (Product)
+
+
+The Text box  should be White in colour & Text  be black
+the bold Todo List should be black as well
+
+---------------------------------------------
