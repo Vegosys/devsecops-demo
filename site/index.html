@@ -1,20 +1,29 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Todo List</title>
-  <link rel="stylesheet" href="styles.css">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Todo List</title>
+<link rel="stylesheet" href="styles.css">
 </head>
 <body>
-  <main class="app">
-    <h1>Todo List</h1>
-    <form id="add-form">
-      <input id="task-input" type="text" placeholder="Add a task..." autocomplete="off" required>
-      <button type="submit">Add</button>
-    </form>
-    <ul id="task-list"></ul>
-  </main>
-  <script src="app.js"></script>
+<div class="container">
+  <h1 class="title">Todo List</h1>
+
+  <form id="todo-form" class="todo-form">
+    <input
+      type="text"
+      id="task-input"
+      class="task-input"
+      placeholder="Add a new task..."
+      autocomplete="off"
+    >
+    <button type="submit" id="add-btn">Add</button>
+  </form>
+
+  <ul id="todo-list" class="todo-list"></ul>
+</div>
+
+<script src="app.js"></script>
 </body>
 </html>
