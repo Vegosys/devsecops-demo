@@ -39,3 +39,7 @@ Can we add an option for dark mode/light mode & system settings
 -------------------------------------
 
 Can you add Jackson Group - Before Todo List at the top
+
+----------------------------------------
+
+Can you add montly calender view to the right side of the text box
