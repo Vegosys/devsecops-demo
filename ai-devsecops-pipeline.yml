@@ -203,6 +203,17 @@ jobs:
           # REAL: Anthropic API on the PR diff
           echo "### 🤖 AI Code Review — ✅ 1 suggestion" >> "$GITHUB_STEP_SUMMARY"
 
+  # ===================== HUMAN APPROVAL GATE (code review) =====================
+  await-code-review:
+    name: ✋ Approve Code Review
+    runs-on: ubuntu-latest
+    needs: ai-code-review
+    environment: code-review-approval   # required reviewers => pipeline pauses here
+    steps:
+      - run: |
+          echo "✅ Code review approved by ${{ github.actor }} — releasing the build."
+          echo "### ✋ Code Review Approval — ✅ approved, pipeline proceeding" >> "$GITHUB_STEP_SUMMARY"
+
   ai-test-gen:
     name: 🤖 AI Test Generation
     runs-on: ubuntu-latest
@@ -221,7 +232,7 @@ jobs:
   build:
     name: ⚙️ Build .NET Container
     runs-on: ubuntu-latest
-    needs: [secret-scan, sast, sca, iac-scan]
+    needs: [secret-scan, sast, sca, iac-scan, await-code-review]
     outputs:
       tag: ${{ steps.meta.outputs.tag }}
     steps:
@@ -343,6 +354,7 @@ jobs:
             echo "| AI codegen | 🤖 AI | ✅ |"
             echo "| Secret / SAST / SCA / IaC | DevSecOps | ✅ |"
             echo "| AI code review / test gen | 🤖 AI | ✅ |"
+            echo "| Code review approval | ✋ Human | ✅ |"
             echo "| Build .NET container | DevSecOps | ✅ |"
             echo "| Image scan / SBOM+Sign / DAST | DevSecOps | ✅ |"
             echo "| AI security triage | 🤖 AI | ✅ |"

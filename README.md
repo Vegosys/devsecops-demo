@@ -25,8 +25,10 @@ src/DemoApi/                             # a REAL ASP.NET Core (.NET 8) API + Do
    approved design doc to generate the actual code, and **commits + pushes it to `main` itself**.
    Falls back to copying `templates/` if `ANTHROPIC_API_KEY` isn't set.
 5. **Pipeline runs (against the fresh code)** — security scans + AI review/test →
-   **real `docker build` of the .NET API** → image scan / SBOM / sign → DAST → AI triage →
-   **real deploy to GitHub Pages** → AI anomaly watch.
+   **a second approval gate** at `await-code-review` (a developer signs off on the AI code
+   review findings before the build proceeds) → **real `docker build` of the .NET API** →
+   image scan / SBOM / sign → DAST → AI triage → **real deploy to GitHub Pages** → AI
+   anomaly watch.
 
 ## Autonomous codegen
 The `codegen` job is what makes step 4 fully autonomous — no interactive session required:
@@ -45,6 +47,11 @@ The `codegen` job is what makes step 4 fully autonomous — no interactive sessi
 ## One-time setup (required for the pause to work)
 GitHub → **Settings → Environments → New environment → `design-approval`** →
 add yourself (or a team) as a **Required reviewer**. That is what makes step 3 stop and wait.
+
+GitHub → **Settings → Environments → New environment → `code-review-approval`** →
+add yourself (or a team) as a **Required reviewer**. That is what makes the pipeline pause
+again after AI code review, before `build` runs — a developer signing off on the (simulated)
+review findings.
 
 GitHub → **Settings → Pages → Source: GitHub Actions**. That is what lets the `deploy` job
 publish `site/` (the todo list webpage, from `requirements/webpage-requirement.txt`) to
