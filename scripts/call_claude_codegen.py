@@ -14,6 +14,10 @@ implement it.
 Requirement type: {req_type}
 {file_list}
 
+Keep output compact: if decorative images are requested, use CSS (gradients, shapes, emoji)
+or small inline SVG (under ~30 lines) instead of embedded base64 image data or long asset
+descriptions — output must fit well within the token budget.
+
 Output ONLY the following format, with no commentary before, between, or after:
 
 ===FILE: <relative-path>===
@@ -95,7 +99,7 @@ def main() -> int:
     user = f"## Brief\n{brief}\n\n## Approved Design\n{design_doc}"
 
     try:
-        response = call_anthropic(api_key, system, user, max_tokens=8192)
+        response = call_anthropic(api_key, system, user, max_tokens=16000)
         files = parse_files(response)
         for path in files:
             validate_path(path, args.req_type)

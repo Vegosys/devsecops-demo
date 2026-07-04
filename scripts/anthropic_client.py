@@ -30,6 +30,12 @@ def call_anthropic(api_key: str, system: str, user: str, max_tokens: int) -> str
     except urllib.error.HTTPError as e:
         raise RuntimeError(f"Anthropic API HTTP {e.code}: {e.read().decode('utf-8', 'replace')}")
 
+    if data.get("stop_reason") == "max_tokens":
+        raise RuntimeError(
+            f"Response truncated: hit max_tokens={max_tokens} before finishing. "
+            "Raise max_tokens or ask for more compact output."
+        )
+
     try:
         for block in data["content"]:
             if block.get("type") == "text":
