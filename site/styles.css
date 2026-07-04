@@ -1,102 +1,79 @@
-:root {
-  color-scheme: light dark;
-  font-family: system-ui, -apple-system, sans-serif;
+* {
+  box-sizing: border-box;
 }
 
 body {
+  font-family: Arial, Helvetica, sans-serif;
+  background: #f4f4f4;
   margin: 0;
-  min-height: 100vh;
-  display: flex;
-  justify-content: center;
-  padding: 3rem 1rem;
-  background: #f5f5f7;
+  padding: 2rem 1rem;
 }
 
-.app {
-  width: 100%;
+.container {
   max-width: 480px;
+  margin: 0 auto;
+  background: #fafafa;
+  padding: 1.5rem;
+  border-radius: 8px;
 }
 
-h1 {
-  text-align: center;
-  margin-bottom: 1.5rem;
+.title {
+  font-weight: bold;
   color: #000;
+  text-align: center;
+  margin-top: 0;
 }
 
-#add-form {
+.todo-form {
   display: flex;
   gap: 0.5rem;
-  margin-bottom: 1.5rem;
+  margin-bottom: 1rem;
 }
 
-#task-input {
+.task-input {
   flex: 1;
-  padding: 0.6rem 0.8rem;
-  font-size: 1rem;
-  border: 1px solid #ccc;
-  border-radius: 6px;
+  padding: 0.5rem;
   background: #fff;
   color: #000;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 1rem;
 }
 
-#add-form button {
-  padding: 0.6rem 1.2rem;
-  font-size: 1rem;
-  border: none;
-  border-radius: 6px;
-  background: #2563eb;
-  color: white;
+#add-btn {
+  padding: 0.5rem 1rem;
   cursor: pointer;
 }
 
-#add-form button:hover {
-  background: #1d4ed8;
-}
-
-#task-list {
+.todo-list {
   list-style: none;
-  margin: 0;
   padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
+  margin: 0;
 }
 
-.task {
+.todo-item {
   display: flex;
   align-items: center;
-  gap: 0.6rem;
-  padding: 0.6rem 0.8rem;
-  background: white;
-  border-radius: 6px;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+  gap: 0.5rem;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid #ddd;
 }
 
-.task span {
+.todo-item .task-text {
   flex: 1;
   word-break: break-word;
 }
 
-.task.done span {
+.todo-item.done .task-text {
   text-decoration: line-through;
   color: #888;
 }
 
-.task button {
+.delete-btn {
+  cursor: pointer;
   border: none;
   background: transparent;
-  color: #999;
-  font-size: 1.1rem;
-  cursor: pointer;
-  line-height: 1;
-}
-
-.task button:hover {
-  color: #dc2626;
-}
-
-.empty {
-  text-align: center;
-  color: #888;
-  padding: 1rem 0;
+  color: #b00;
+  font-size: 1rem;
+  padding: 0.25rem 0.5rem;
 }
