@@ -1,11 +1,15 @@
 (function () {
-  'use strict';
+  "use strict";
 
-  const STORAGE_KEY = 'todoListTasks';
+  const STORAGE_KEY = "todoAppTasks";
 
-  const form = document.getElementById('todo-form');
-  const input = document.getElementById('task-input');
-  const list = document.getElementById('todo-list');
+  const taskInput = document.getElementById("taskInput");
+  const addBtn = document.getElementById("addBtn");
+  const taskList = document.getElementById("taskList");
+  const emptyState = document.getElementById("emptyState");
+  const clockEl = document.getElementById("clock");
+
+  let tasks = loadTasks();
 
   function loadTasks() {
     try {
@@ -19,82 +23,130 @@
     }
   }
 
-  function saveTasks(tasks) {
+  function saveTasks() {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
   }
 
   function generateId() {
-    return 'id-' + Date.now() + '-' + Math.random().toString(36).slice(2, 9);
+    return "id-" + Date.now() + "-" + Math.random().toString(36).slice(2, 9);
   }
 
-  let tasks = loadTasks();
+  function formatTimestamp(isoString) {
+    const d = new Date(isoString);
+    return d.toLocaleString(undefined, {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit"
+    });
+  }
 
-  function render() {
-    list.innerHTML = '';
+  function renderTasks() {
+    taskList.innerHTML = "";
+
+    if (tasks.length === 0) {
+      emptyState.style.display = "block";
+      return;
+    }
+    emptyState.style.display = "none";
+
     tasks.forEach(function (task) {
-      const li = document.createElement('li');
-      li.className = 'todo-item' + (task.done ? ' done' : '');
+      const li = document.createElement("li");
+      li.className = "task-item" + (task.done ? " done" : "");
       li.dataset.id = task.id;
 
-      const checkbox = document.createElement('input');
-      checkbox.type = 'checkbox';
+      const checkbox = document.createElement("input");
+      checkbox.type = "checkbox";
       checkbox.checked = !!task.done;
-      checkbox.addEventListener('change', function () {
-        toggleDone(task.id);
+      checkbox.addEventListener("change", function () {
+        toggleTask(task.id);
       });
 
-      const span = document.createElement('span');
-      span.className = 'task-text';
-      span.textContent = task.text;
+      const content = document.createElement("div");
+      content.className = "task-content";
 
-      const deleteBtn = document.createElement('button');
-      deleteBtn.type = 'button';
-      deleteBtn.className = 'delete-btn';
-      deleteBtn.textContent = 'Delete';
-      deleteBtn.addEventListener('click', function () {
+      const textSpan = document.createElement("span");
+      textSpan.className = "task-text";
+      textSpan.textContent = task.text;
+
+      const timeSpan = document.createElement("span");
+      timeSpan.className = "task-timestamp";
+      timeSpan.textContent = "Added: " + formatTimestamp(task.createdAt);
+
+      content.appendChild(textSpan);
+      content.appendChild(timeSpan);
+
+      const deleteBtn = document.createElement("button");
+      deleteBtn.className = "delete-btn";
+      deleteBtn.textContent = "Delete";
+      deleteBtn.addEventListener("click", function () {
         deleteTask(task.id);
       });
 
       li.appendChild(checkbox);
-      li.appendChild(span);
+      li.appendChild(content);
       li.appendChild(deleteBtn);
-      list.appendChild(li);
+
+      taskList.appendChild(li);
     });
   }
 
-  function addTask(text) {
-    const trimmed = text.trim();
-    if (!trimmed) return;
-    tasks.push({ id: generateId(), text: trimmed, done: false });
-    saveTasks(tasks);
-    render();
+  function addTask() {
+    const text = taskInput.value.trim();
+    if (!text) return;
+
+    const task = {
+      id: generateId(),
+      text: text,
+      done: false,
+      createdAt: new Date().toISOString()
+    };
+
+    tasks.push(task);
+    saveTasks();
+    renderTasks();
+
+    taskInput.value = "";
+    taskInput.focus();
   }
 
-  function toggleDone(id) {
-    tasks = tasks.map(function (task) {
-      if (task.id === id) {
-        return Object.assign({}, task, { done: !task.done });
-      }
-      return task;
-    });
-    saveTasks(tasks);
-    render();
+  function toggleTask(id) {
+    const task = tasks.find(function (t) { return t.id === id; });
+    if (task) {
+      task.done = !task.done;
+      saveTasks();
+      renderTasks();
+    }
   }
 
   function deleteTask(id) {
-    tasks = tasks.filter(function (task) {
-      return task.id !== id;
-    });
-    saveTasks(tasks);
-    render();
+    tasks = tasks.filter(function (t) { return t.id !== id; });
+    saveTasks();
+    renderTasks();
   }
 
-  form.addEventListener('submit', function (e) {
-    e.preventDefault();
-    addTask(input.value);
-    input.value = '';
-    input.focus();
+  function updateClock() {
+    const now = new Date();
+    clockEl.textContent = now.toLocaleString(undefined, {
+      weekday: "short",
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit"
+    });
+  }
+
+  addBtn.addEventListener("click", addTask);
+  taskInput.addEventListener("keydown", function (e) {
+    if (e.key === "Enter") {
+      addTask();
+    }
   });
 
-  render();
+  updateClock();
+  setInterval(updateClock, 60000);
+
+  renderTasks();
 })();

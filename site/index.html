@@ -7,23 +7,50 @@
 <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-<div class="container">
-  <h1 class="title">Todo List</h1>
+  <header class="top-bar">
+    <h1 class="app-title">📝 Todo List</h1>
+    <div id="clock" class="clock" aria-live="polite"></div>
+  </header>
 
-  <form id="todo-form" class="todo-form">
-    <input
-      type="text"
-      id="task-input"
-      class="task-input"
-      placeholder="Add a new task..."
-      autocomplete="off"
-    >
-    <button type="submit" id="add-btn">Add</button>
-  </form>
+  <div class="banner" aria-hidden="true">
+    <svg viewBox="0 0 600 120" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet" role="img">
+      <rect width="600" height="120" fill="#a8d8ea"/>
+      <circle cx="60" cy="60" r="40" fill="#ffe066"/>
+      <rect x="140" y="70" width="90" height="40" fill="#8fd694"/>
+      <rect x="150" y="45" width="70" height="35" fill="#8fd694"/>
+      <polygon points="185,20 150,45 220,45" fill="#5fa864"/>
+      <rect x="320" y="80" width="60" height="30" fill="#8fd694"/>
+      <polygon points="350,55 320,80 380,80" fill="#5fa864"/>
+      <rect x="450" y="60" width="100" height="50" fill="#e0a96d"/>
+      <polygon points="500,30 450,60 550,60" fill="#c47f3c"/>
+      <rect x="490" y="80" width="20" height="30" fill="#7a4a24"/>
+      <ellipse cx="500" cy="110" rx="290" ry="10" fill="#c9e8b4"/>
+    </svg>
+  </div>
 
-  <ul id="todo-list" class="todo-list"></ul>
-</div>
+  <main class="container">
+    <div class="input-row">
+      <input type="text" id="taskInput" placeholder="What needs to be done?" autocomplete="off">
+      <button id="addBtn">Add</button>
+    </div>
 
-<script src="app.js"></script>
+    <ul id="taskList" class="task-list"></ul>
+
+    <div class="empty-state" id="emptyState">
+      <svg width="80" height="80" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" role="img" aria-hidden="true">
+        <rect x="15" y="10" width="70" height="85" rx="6" fill="#f0f0f0" stroke="#ccc" stroke-width="2"/>
+        <line x1="28" y1="30" x2="72" y2="30" stroke="#bbb" stroke-width="4"/>
+        <line x1="28" y1="48" x2="72" y2="48" stroke="#bbb" stroke-width="4"/>
+        <line x1="28" y1="66" x2="55" y2="66" stroke="#bbb" stroke-width="4"/>
+      </svg>
+      <p>No tasks yet. Add your first task above!</p>
+    </div>
+  </main>
+
+  <footer class="footer">
+    <p>Your tasks are saved locally in this browser.</p>
+  </footer>
+
+  <script src="app.js"></script>
 </body>
 </html>
