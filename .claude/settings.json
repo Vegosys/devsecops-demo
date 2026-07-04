@@ -27,7 +27,9 @@
       "Bash(git rm *)",
       "Bash(git fetch *)",
       "Bash(git commit *)",
-      "Bash(python3 -m py_compile anthropic_client.py)"
+      "Bash(python3 -m py_compile anthropic_client.py)",
+      "Bash(python3 -m py_compile scripts/anthropic_client.py scripts/call_claude_codegen.py)",
+      "Bash(python3 -m py_compile scripts/call_claude_codegen.py)"
     ]
   }
 }
