@@ -94,6 +94,20 @@ body {
   font-size: 1.8rem;
 }
 
+.brand-text {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.15;
+}
+
+.org-title {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #000;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+
 .brand-title {
   font-weight: 800;
   color: #000;
