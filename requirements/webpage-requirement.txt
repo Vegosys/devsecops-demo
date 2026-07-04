@@ -32,3 +32,6 @@ Also add some pictures/images to the page to make it attractive
 
 Lets Add an option to edit the added task as well
 
+------------------------------------
+
+Can we add an option for dark mode/light mode & system settings
