@@ -35,3 +35,4 @@ Lets Add an option to edit the added task as well
 ------------------------------------
 
 Can we add an option for dark mode/light mode & system settings
+
