@@ -7,16 +7,26 @@ from anthropic_client import call_anthropic
 
 ALLOWED_ROOTS = {"webpage": "site/", "api": "src/DemoApi/"}
 
-SYSTEM_PROMPT = """You are a code generator. Given a plain-English requirement brief and its \
-approved technical design document, write the complete contents of the source file(s) that \
-implement it.
+SYSTEM_PROMPT = """You are a code generator. Given a plain-English requirement brief, its \
+approved technical design document, and the CURRENT contents of the source file(s), update \
+the code to satisfy the brief.
 
 Requirement type: {req_type}
 {file_list}
 
+Make MINIMAL, TARGETED changes: preserve the current implementation's structure, styling, \
+and functionality wherever it already satisfies the brief. Only change what's needed for \
+requirements that are new or different from what the current code already does. Do not \
+rewrite working, unrelated code just because you're regenerating the file. If there is no \
+current code (first run), write it from scratch.
+
 Keep output compact: if decorative images are requested, use CSS (gradients, shapes, emoji)
 or small inline SVG (under ~30 lines) instead of embedded base64 image data or long asset
 descriptions — output must fit well within the token budget.
+
+You must still output the COMPLETE contents of each file (not a patch/diff format) — just \
+make sure that complete content is a minimal-change evolution of the current code, not a \
+from-scratch rewrite.
 
 Output ONLY the following format, with no commentary before, between, or after:
 
@@ -34,6 +44,22 @@ FILE_LISTS = {
     "webpage": "Write exactly these 3 files: site/index.html, site/styles.css, site/app.js",
     "api": "Write exactly this 1 file: src/DemoApi/Program.cs",
 }
+
+CURRENT_FILE_PATHS = {
+    "webpage": ["site/index.html", "site/styles.css", "site/app.js"],
+    "api": ["src/DemoApi/Program.cs"],
+}
+
+
+def read_current_files(req_type: str) -> str:
+    sections = []
+    for path in CURRENT_FILE_PATHS[req_type]:
+        if os.path.exists(path):
+            with open(path) as f:
+                sections.append(f"### {path}\n{f.read()}")
+    if not sections:
+        return "(no current code — this is the first run for this type)"
+    return "\n\n".join(sections)
 
 
 def parse_files(text: str) -> dict:
@@ -95,8 +121,9 @@ def main() -> int:
     with open(args.design_doc) as f:
         design_doc = f.read()
 
+    current_code = read_current_files(args.req_type)
     system = SYSTEM_PROMPT.format(req_type=args.req_type, file_list=FILE_LISTS[args.req_type])
-    user = f"## Brief\n{brief}\n\n## Approved Design\n{design_doc}"
+    user = f"## Brief\n{brief}\n\n## Approved Design\n{design_doc}\n\n## Current Code\n{current_code}"
 
     try:
         response = call_anthropic(api_key, system, user, max_tokens=16000)
