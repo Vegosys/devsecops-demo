@@ -1,227 +1,287 @@
 (function () {
   "use strict";
 
-  var STORAGE_KEY = "todoTasks";
+  var TASKS_KEY = "todo.tasks";
+  var THEME_KEY = "todo.theme";
 
   var taskForm = document.getElementById("task-form");
   var taskInput = document.getElementById("task-input");
   var taskList = document.getElementById("task-list");
   var emptyState = document.getElementById("empty-state");
   var clockEl = document.getElementById("clock");
+  var themeButtons = document.querySelectorAll(".theme-btn");
 
-  /** @type {Array<{id:string, text:string, done:boolean, createdAt:string}>} */
-  var tasks = [];
+  // ---------- Storage helpers ----------
 
   function loadTasks() {
     try {
-      var raw = localStorage.getItem(STORAGE_KEY);
-      tasks = raw ? JSON.parse(raw) : [];
-      if (!Array.isArray(tasks)) {
-        tasks = [];
-      }
+      var raw = localStorage.getItem(TASKS_KEY);
+      return raw ? JSON.parse(raw) : [];
     } catch (e) {
-      tasks = [];
+      return [];
     }
   }
 
-  function saveTasks() {
+  function saveTasks(tasks) {
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
+      localStorage.setItem(TASKS_KEY, JSON.stringify(tasks));
     } catch (e) {
-      // storage unavailable - fail silently, app still works in-memory
+      /* storage unavailable, fail silently */
     }
   }
 
-  function generateId() {
-    return Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+  var tasks = loadTasks();
+
+  function makeId() {
+    return "t-" + Date.now() + "-" + Math.floor(Math.random() * 100000);
   }
 
-  function formatTimestamp(isoString) {
-    var d = new Date(isoString);
-    if (isNaN(d.getTime())) {
-      return "";
-    }
-    return d.toLocaleString();
+  function formatTimestamp(iso) {
+    var d = new Date(iso);
+    if (isNaN(d.getTime())) return "";
+    var datePart = d.toLocaleDateString(undefined, {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+    });
+    var timePart = d.toLocaleTimeString(undefined, {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+    return datePart + ", " + timePart;
   }
 
-  function updateClock() {
-    clockEl.textContent = new Date().toLocaleString();
-  }
+  // ---------- Rendering ----------
 
-  function renderTasks() {
+  function render() {
     taskList.innerHTML = "";
 
     if (tasks.length === 0) {
-      emptyState.classList.remove("hidden");
+      emptyState.classList.add("visible");
     } else {
-      emptyState.classList.add("hidden");
+      emptyState.classList.remove("visible");
     }
 
     tasks.forEach(function (task) {
-      var li = document.createElement("li");
-      li.className = "task-item" + (task.done ? " done" : "");
-      li.dataset.id = task.id;
-
-      var checkbox = document.createElement("input");
-      checkbox.type = "checkbox";
-      checkbox.className = "task-checkbox";
-      checkbox.checked = !!task.done;
-      checkbox.setAttribute("aria-label", "Mark task complete");
-      checkbox.addEventListener("change", function () {
-        toggleDone(task.id);
-      });
-
-      var body = document.createElement("div");
-      body.className = "task-body";
-
-      var textEl = document.createElement("div");
-      textEl.className = "task-text";
-      textEl.textContent = task.text;
-
-      var metaEl = document.createElement("div");
-      metaEl.className = "task-meta";
-      metaEl.textContent = "Created: " + formatTimestamp(task.createdAt);
-
-      body.appendChild(textEl);
-      body.appendChild(metaEl);
-
-      var actions = document.createElement("div");
-      actions.className = "task-actions";
-
-      var editBtn = document.createElement("button");
-      editBtn.type = "button";
-      editBtn.className = "icon-btn edit";
-      editBtn.textContent = "Edit";
-      editBtn.addEventListener("click", function () {
-        enterEditMode(li, task);
-      });
-
-      var deleteBtn = document.createElement("button");
-      deleteBtn.type = "button";
-      deleteBtn.className = "icon-btn delete";
-      deleteBtn.textContent = "Delete";
-      deleteBtn.addEventListener("click", function () {
-        deleteTask(task.id);
-      });
-
-      actions.appendChild(editBtn);
-      actions.appendChild(deleteBtn);
-
-      li.appendChild(checkbox);
-      li.appendChild(body);
-      li.appendChild(actions);
-
-      taskList.appendChild(li);
+      taskList.appendChild(buildTaskItem(task));
     });
   }
 
-  function enterEditMode(li, task) {
-    var body = li.querySelector(".task-body");
-    body.innerHTML = "";
+  function buildTaskItem(task) {
+    var li = document.createElement("li");
+    li.className = "task-item" + (task.done ? " done" : "");
+    li.dataset.id = task.id;
 
-    var editRow = document.createElement("div");
-    editRow.className = "edit-row";
+    var checkbox = document.createElement("input");
+    checkbox.type = "checkbox";
+    checkbox.className = "task-checkbox";
+    checkbox.checked = !!task.done;
+    checkbox.setAttribute("aria-label", "Mark task complete");
+    checkbox.addEventListener("change", function () {
+      toggleDone(task.id);
+    });
+
+    var body = document.createElement("div");
+    body.className = "task-body";
+
+    var textEl = document.createElement("div");
+    textEl.className = "task-text";
+    textEl.textContent = task.text;
+
+    var metaEl = document.createElement("div");
+    metaEl.className = "task-meta";
+    metaEl.textContent = "Created " + formatTimestamp(task.createdAt);
+
+    body.appendChild(textEl);
+    body.appendChild(metaEl);
+
+    var actions = document.createElement("div");
+    actions.className = "task-actions";
+
+    var editBtn = document.createElement("button");
+    editBtn.type = "button";
+    editBtn.className = "icon-btn edit";
+    editBtn.title = "Edit task";
+    editBtn.textContent = "✏️";
+    editBtn.addEventListener("click", function () {
+      startEdit(li, task, body);
+    });
+
+    var deleteBtn = document.createElement("button");
+    deleteBtn.type = "button";
+    deleteBtn.className = "icon-btn delete";
+    deleteBtn.title = "Delete task";
+    deleteBtn.textContent = "🗑️";
+    deleteBtn.addEventListener("click", function () {
+      deleteTask(task.id);
+    });
+
+    actions.appendChild(editBtn);
+    actions.appendChild(deleteBtn);
+
+    li.appendChild(checkbox);
+    li.appendChild(body);
+    li.appendChild(actions);
+
+    return li;
+  }
+
+  function startEdit(li, task, body) {
+    body.innerHTML = "";
 
     var input = document.createElement("input");
     input.type = "text";
-    input.className = "edit-input";
+    input.className = "task-edit-input";
     input.value = task.text;
+    input.maxLength = 200;
 
-    var saveBtn = document.createElement("button");
-    saveBtn.type = "button";
-    saveBtn.className = "icon-btn";
-    saveBtn.textContent = "Save";
+    body.appendChild(input);
+    input.focus();
+    input.setSelectionRange(input.value.length, input.value.length);
 
-    var cancelBtn = document.createElement("button");
-    cancelBtn.type = "button";
-    cancelBtn.className = "icon-btn";
-    cancelBtn.textContent = "Cancel";
+    var finished = false;
 
-    saveBtn.addEventListener("click", function () {
-      commitEdit(task.id, input.value);
-    });
+    function commit() {
+      if (finished) return;
+      finished = true;
+      var newText = input.value.trim();
+      if (newText) {
+        updateTaskText(task.id, newText);
+      } else {
+        render();
+      }
+    }
 
-    cancelBtn.addEventListener("click", function () {
-      renderTasks();
-    });
+    function cancel() {
+      if (finished) return;
+      finished = true;
+      render();
+    }
 
+    input.addEventListener("blur", commit);
     input.addEventListener("keydown", function (e) {
       if (e.key === "Enter") {
         e.preventDefault();
-        commitEdit(task.id, input.value);
+        commit();
       } else if (e.key === "Escape") {
-        renderTasks();
+        e.preventDefault();
+        cancel();
       }
     });
-
-    editRow.appendChild(input);
-    editRow.appendChild(saveBtn);
-    editRow.appendChild(cancelBtn);
-
-    body.appendChild(editRow);
-    input.focus();
-    input.select();
   }
 
-  function commitEdit(id, newText) {
-    var trimmed = newText.trim();
-    if (trimmed === "") {
-      renderTasks();
-      return;
-    }
-    var task = tasks.find(function (t) {
-      return t.id === id;
-    });
-    if (task) {
-      task.text = trimmed;
-      saveTasks();
-    }
-    renderTasks();
-  }
+  // ---------- Task operations ----------
 
   function addTask(text) {
-    var trimmed = text.trim();
-    if (trimmed === "") {
-      return;
-    }
-    tasks.push({
-      id: generateId(),
-      text: trimmed,
+    var task = {
+      id: makeId(),
+      text: text,
       done: false,
-      createdAt: new Date().toISOString()
-    });
-    saveTasks();
-    renderTasks();
+      createdAt: new Date().toISOString(),
+    };
+    tasks.unshift(task);
+    saveTasks(tasks);
+    render();
   }
 
   function toggleDone(id) {
-    var task = tasks.find(function (t) {
-      return t.id === id;
+    tasks = tasks.map(function (t) {
+      if (t.id === id) {
+        return Object.assign({}, t, { done: !t.done });
+      }
+      return t;
     });
-    if (task) {
-      task.done = !task.done;
-      saveTasks();
-      renderTasks();
-    }
+    saveTasks(tasks);
+    render();
   }
 
   function deleteTask(id) {
     tasks = tasks.filter(function (t) {
       return t.id !== id;
     });
-    saveTasks();
-    renderTasks();
+    saveTasks(tasks);
+    render();
   }
+
+  function updateTaskText(id, newText) {
+    tasks = tasks.map(function (t) {
+      if (t.id === id) {
+        return Object.assign({}, t, { text: newText });
+      }
+      return t;
+    });
+    saveTasks(tasks);
+    render();
+  }
+
+  // ---------- Form handling ----------
 
   taskForm.addEventListener("submit", function (e) {
     e.preventDefault();
-    addTask(taskInput.value);
+    var value = taskInput.value.trim();
+    if (!value) return;
+    addTask(value);
     taskInput.value = "";
     taskInput.focus();
   });
 
-  loadTasks();
-  renderTasks();
+  // ---------- Clock ----------
+
+  function updateClock() {
+    var now = new Date();
+    var datePart = now.toLocaleDateString(undefined, {
+      weekday: "short",
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+    });
+    var timePart = now.toLocaleTimeString(undefined, {
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+    });
+    clockEl.textContent = datePart + " • " + timePart;
+  }
+
   updateClock();
   setInterval(updateClock, 1000);
+
+  // ---------- Theme ----------
+
+  function applyTheme(theme) {
+    document.documentElement.setAttribute("data-theme", theme);
+    themeButtons.forEach(function (btn) {
+      btn.classList.toggle("active", btn.dataset.themeChoice === theme);
+    });
+  }
+
+  function getStoredTheme() {
+    try {
+      return localStorage.getItem(THEME_KEY) || "system";
+    } catch (e) {
+      return "system";
+    }
+  }
+
+  function setStoredTheme(theme) {
+    try {
+      localStorage.setItem(THEME_KEY, theme);
+    } catch (e) {
+      /* ignore */
+    }
+  }
+
+  themeButtons.forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      var choice = btn.dataset.themeChoice;
+      setStoredTheme(choice);
+      applyTheme(choice);
+    });
+  });
+
+  applyTheme(getStoredTheme());
+
+  // ---------- Initial render ----------
+
+  render();
 })();
