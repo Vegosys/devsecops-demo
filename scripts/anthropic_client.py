@@ -31,6 +31,9 @@ def call_anthropic(api_key: str, system: str, user: str, max_tokens: int) -> str
         raise RuntimeError(f"Anthropic API HTTP {e.code}: {e.read().decode('utf-8', 'replace')}")
 
     try:
-        return data["content"][0]["text"]
+        for block in data["content"]:
+            if block.get("type") == "text":
+                return block["text"]
+        raise KeyError("no text-type content block")
     except (KeyError, IndexError):
         raise RuntimeError(f"Unexpected Anthropic API response shape: {data!r}")
