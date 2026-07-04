@@ -21,7 +21,10 @@
       "Bash(python3 -c \"import yaml; yaml.safe_load\\(open\\('.github/workflows/devsecops-demo.yml'\\)\\); print\\('YAML OK'\\)\")",
       "Bash(python3 -c \"import yaml; yaml.safe_load\\(open\\('ai-devsecops-pipeline.yml'\\)\\); print\\('YAML OK'\\)\")",
       "Bash(python3 -c \"import yaml; yaml.safe_load\\(open\\('.github/workflows/devsecops-demo.yml'\\)\\); yaml.safe_load\\(open\\('ai-devsecops-pipeline.yml'\\)\\); print\\('YAML OK'\\)\")",
-      "Bash(python3 -c ' *)"
+      "Bash(python3 -c ' *)",
+      "Bash(python3 -m py_compile scripts/anthropic_client.py scripts/call_claude_design.py scripts/call_claude_codegen.py)",
+      "Bash(python3 -m py_compile scripts/*.py)",
+      "Bash(git rm *)"
     ]
   }
 }
