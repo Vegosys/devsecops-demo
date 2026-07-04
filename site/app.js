@@ -295,6 +295,87 @@
     }
   }
 
+  // ---------- Calendar ----------
+
+  var calPrevBtn = document.getElementById("cal-prev");
+  var calNextBtn = document.getElementById("cal-next");
+  var calMonthLabel = document.getElementById("cal-month-label");
+  var calWeekdaysEl = document.getElementById("calendar-weekdays");
+  var calGridEl = document.getElementById("calendar-grid");
+
+  var today = new Date();
+  var calViewYear = today.getFullYear();
+  var calViewMonth = today.getMonth();
+
+  var WEEKDAY_LABELS = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
+  var MONTH_LABELS = [
+    "January", "February", "March", "April", "May", "June",
+    "July", "August", "September", "October", "November", "December"
+  ];
+
+  function renderWeekdayHeader() {
+    calWeekdaysEl.innerHTML = "";
+    WEEKDAY_LABELS.forEach(function (label) {
+      var el = document.createElement("div");
+      el.textContent = label;
+      calWeekdaysEl.appendChild(el);
+    });
+  }
+
+  function renderCalendar() {
+    calMonthLabel.textContent = MONTH_LABELS[calViewMonth] + " " + calViewYear;
+    calGridEl.innerHTML = "";
+
+    var firstOfMonth = new Date(calViewYear, calViewMonth, 1);
+    var startWeekday = firstOfMonth.getDay();
+    var daysInMonth = new Date(calViewYear, calViewMonth + 1, 0).getDate();
+    var daysInPrevMonth = new Date(calViewYear, calViewMonth, 0).getDate();
+
+    var totalCells = 42; // 6 weeks
+    var cellDate = new Date(calViewYear, calViewMonth, 1 - startWeekday);
+
+    for (var i = 0; i < totalCells; i++) {
+      var cell = document.createElement("div");
+      cell.className = "cal-day";
+      var isCurrentMonth = cellDate.getMonth() === calViewMonth && cellDate.getFullYear() === calViewYear;
+      if (!isCurrentMonth) {
+        cell.classList.add("other-month");
+      }
+      if (
+        cellDate.getFullYear() === today.getFullYear() &&
+        cellDate.getMonth() === today.getMonth() &&
+        cellDate.getDate() === today.getDate()
+      ) {
+        cell.classList.add("today");
+      }
+      cell.textContent = String(cellDate.getDate());
+      calGridEl.appendChild(cell);
+
+      cellDate = new Date(cellDate.getFullYear(), cellDate.getMonth(), cellDate.getDate() + 1);
+    }
+  }
+
+  calPrevBtn.addEventListener("click", function () {
+    calViewMonth -= 1;
+    if (calViewMonth < 0) {
+      calViewMonth = 11;
+      calViewYear -= 1;
+    }
+    renderCalendar();
+  });
+
+  calNextBtn.addEventListener("click", function () {
+    calViewMonth += 1;
+    if (calViewMonth > 11) {
+      calViewMonth = 0;
+      calViewYear += 1;
+    }
+    renderCalendar();
+  });
+
+  renderWeekdayHeader();
+  renderCalendar();
+
   // ---------- Initial render ----------
 
   render();

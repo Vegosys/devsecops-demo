@@ -36,23 +36,37 @@
     </section>
 
     <main class="card">
-      <form id="task-form" class="task-form" autocomplete="off">
-        <input
-          type="text"
-          id="task-input"
-          class="task-input"
-          placeholder="What needs to be done?"
-          maxlength="200"
-          required
-        >
-        <button type="submit" class="add-btn">➕ Add</button>
-      </form>
+      <div class="content-grid">
+        <div class="todo-column">
+          <form id="task-form" class="task-form" autocomplete="off">
+            <input
+              type="text"
+              id="task-input"
+              class="task-input"
+              placeholder="What needs to be done?"
+              maxlength="200"
+              required
+            >
+            <button type="submit" class="add-btn">➕ Add</button>
+          </form>
 
-      <ul id="task-list" class="task-list"></ul>
+          <ul id="task-list" class="task-list"></ul>
 
-      <div id="empty-state" class="empty-state">
-        <div class="empty-emoji">🌤️📋</div>
-        <p>No tasks yet. Add one above to get started!</p>
+          <div id="empty-state" class="empty-state">
+            <div class="empty-emoji">🌤️📋</div>
+            <p>No tasks yet. Add one above to get started!</p>
+          </div>
+        </div>
+
+        <aside class="calendar-panel" aria-label="Monthly calendar">
+          <div class="calendar-header">
+            <button type="button" id="cal-prev" class="cal-nav-btn" title="Previous month">‹</button>
+            <div id="cal-month-label" class="cal-month-label"></div>
+            <button type="button" id="cal-next" class="cal-nav-btn" title="Next month">›</button>
+          </div>
+          <div class="calendar-weekdays" id="calendar-weekdays"></div>
+          <div class="calendar-grid" id="calendar-grid"></div>
+        </aside>
       </div>
     </main>
 

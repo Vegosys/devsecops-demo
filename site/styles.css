@@ -70,7 +70,7 @@ body {
 }
 
 .app {
-  max-width: 640px;
+  max-width: 800px;
   margin: 0 auto;
   padding: 20px 16px 40px;
 }
@@ -212,6 +212,84 @@ body {
   box-shadow: 0 6px 20px rgba(0, 0, 0, 0.06);
 }
 
+.content-grid {
+  display: flex;
+  gap: 20px;
+  align-items: flex-start;
+  flex-wrap: wrap;
+}
+
+.todo-column {
+  flex: 1 1 280px;
+  min-width: 240px;
+}
+
+.calendar-panel {
+  flex: 0 0 260px;
+  width: 260px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 12px;
+}
+
+.calendar-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.cal-month-label {
+  font-weight: 700;
+  font-size: 0.9rem;
+}
+
+.cal-nav-btn {
+  border: none;
+  background: transparent;
+  color: var(--text);
+  cursor: pointer;
+  font-size: 1.1rem;
+  padding: 2px 8px;
+  border-radius: 6px;
+  transition: background 0.2s;
+}
+
+.cal-nav-btn:hover {
+  background: var(--border);
+}
+
+.calendar-weekdays,
+.calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 2px;
+  text-align: center;
+}
+
+.calendar-weekdays {
+  font-size: 0.7rem;
+  color: var(--muted);
+  margin-bottom: 4px;
+}
+
+.calendar-grid .cal-day {
+  font-size: 0.8rem;
+  padding: 6px 0;
+  border-radius: 6px;
+}
+
+.calendar-grid .cal-day.other-month {
+  color: var(--muted);
+  opacity: 0.4;
+}
+
+.calendar-grid .cal-day.today {
+  background: var(--accent);
+  color: #fff;
+  font-weight: 700;
+}
+
 .task-form {
   display: flex;
   gap: 8px;
@@ -350,4 +428,11 @@ body {
   margin-top: 20px;
   font-size: 0.8rem;
   color: var(--footer-text);
+}
+
+@media (max-width: 560px) {
+  .calendar-panel {
+    width: 100%;
+    flex: 1 1 100%;
+  }
 }
