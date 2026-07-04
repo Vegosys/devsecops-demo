@@ -28,5 +28,7 @@ At the top right corner Let is add todays Data & time ( Take from browser )
 And when the task is Added add date & time to the task to know when the task was created. 
 
 Also add some pictures/images to the page to make it attractive
+----------------------------
 
+Lets Add an option to edit the added task as well
 
