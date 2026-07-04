@@ -281,6 +281,20 @@
 
   applyTheme(getStoredTheme());
 
+  if (window.matchMedia) {
+    var systemMedia = window.matchMedia("(prefers-color-scheme: dark)");
+    var onSystemChange = function () {
+      if (getStoredTheme() === "system") {
+        applyTheme("system");
+      }
+    };
+    if (systemMedia.addEventListener) {
+      systemMedia.addEventListener("change", onSystemChange);
+    } else if (systemMedia.addListener) {
+      systemMedia.addListener(onSystemChange);
+    }
+  }
+
   // ---------- Initial render ----------
 
   render();
