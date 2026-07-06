@@ -3,6 +3,7 @@
 
   var TASKS_KEY = "todo.tasks";
   var THEME_KEY = "todo.theme";
+  var SELECTED_DATE_KEY = "todo.selectedDate";
 
   var taskForm = document.getElementById("task-form");
   var taskInput = document.getElementById("task-input");
@@ -10,13 +11,36 @@
   var emptyState = document.getElementById("empty-state");
   var clockEl = document.getElementById("clock");
   var themeButtons = document.querySelectorAll(".theme-btn");
+  var selectedDateLabelEl = document.getElementById("selected-date-label");
+  var jumpTodayBtn = document.getElementById("jump-today-btn");
+
+  // ---------- Date helpers ----------
+
+  function pad2(n) {
+    return n < 10 ? "0" + n : "" + n;
+  }
+
+  function dateToStr(d) {
+    return d.getFullYear() + "-" + pad2(d.getMonth() + 1) + "-" + pad2(d.getDate());
+  }
+
+  function todayStr() {
+    return dateToStr(new Date());
+  }
 
   // ---------- Storage helpers ----------
 
   function loadTasks() {
     try {
       var raw = localStorage.getItem(TASKS_KEY);
-      return raw ? JSON.parse(raw) : [];
+      var parsed = raw ? JSON.parse(raw) : [];
+      // Backfill date field for any legacy tasks without one.
+      return parsed.map(function (t) {
+        if (!t.date) {
+          return Object.assign({}, t, { date: todayStr(), editedAt: t.editedAt || null });
+        }
+        return t;
+      });
     } catch (e) {
       return [];
     }
@@ -30,7 +54,24 @@
     }
   }
 
+  function loadSelectedDate() {
+    try {
+      return localStorage.getItem(SELECTED_DATE_KEY) || todayStr();
+    } catch (e) {
+      return todayStr();
+    }
+  }
+
+  function saveSelectedDate(dateStr) {
+    try {
+      localStorage.setItem(SELECTED_DATE_KEY, dateStr);
+    } catch (e) {
+      /* ignore */
+    }
+  }
+
   var tasks = loadTasks();
+  var selectedDate = loadSelectedDate();
 
   function makeId() {
     return "t-" + Date.now() + "-" + Math.floor(Math.random() * 100000);
@@ -51,18 +92,36 @@
     return datePart + ", " + timePart;
   }
 
+  function formatSelectedDateLabel(dateStr) {
+    var parts = dateStr.split("-").map(Number);
+    var d = new Date(parts[0], parts[1] - 1, parts[2]);
+    var label = d.toLocaleDateString(undefined, {
+      weekday: "short",
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+    });
+    var suffix = dateStr === todayStr() ? " (Today)" : "";
+    return "Tasks for " + label + suffix;
+  }
+
   // ---------- Rendering ----------
 
   function render() {
     taskList.innerHTML = "";
+    selectedDateLabelEl.textContent = formatSelectedDateLabel(selectedDate);
 
-    if (tasks.length === 0) {
+    var visibleTasks = tasks.filter(function (t) {
+      return t.date === selectedDate;
+    });
+
+    if (visibleTasks.length === 0) {
       emptyState.classList.add("visible");
     } else {
       emptyState.classList.remove("visible");
     }
 
-    tasks.forEach(function (task) {
+    visibleTasks.forEach(function (task) {
       taskList.appendChild(buildTaskItem(task));
     });
   }
@@ -90,7 +149,11 @@
 
     var metaEl = document.createElement("div");
     metaEl.className = "task-meta";
-    metaEl.textContent = "Created " + formatTimestamp(task.createdAt);
+    var metaText = "Created " + formatTimestamp(task.createdAt);
+    if (task.editedAt) {
+      metaText += " • edited " + formatTimestamp(task.editedAt);
+    }
+    metaEl.textContent = metaText;
 
     body.appendChild(textEl);
     body.appendChild(metaEl);
@@ -145,7 +208,7 @@
       if (finished) return;
       finished = true;
       var newText = input.value.trim();
-      if (newText) {
+      if (newText && newText !== task.text) {
         updateTaskText(task.id, newText);
       } else {
         render();
@@ -177,11 +240,14 @@
       id: makeId(),
       text: text,
       done: false,
+      date: selectedDate,
       createdAt: new Date().toISOString(),
+      editedAt: null,
     };
     tasks.unshift(task);
     saveTasks(tasks);
     render();
+    renderCalendar();
   }
 
   function toggleDone(id) {
@@ -201,18 +267,35 @@
     });
     saveTasks(tasks);
     render();
+    renderCalendar();
   }
 
   function updateTaskText(id, newText) {
     tasks = tasks.map(function (t) {
       if (t.id === id) {
-        return Object.assign({}, t, { text: newText });
+        return Object.assign({}, t, { text: newText, editedAt: new Date().toISOString() });
       }
       return t;
     });
     saveTasks(tasks);
     render();
   }
+
+  // ---------- Selected date handling ----------
+
+  function setSelectedDate(dateStr) {
+    selectedDate = dateStr;
+    saveSelectedDate(selectedDate);
+    render();
+    renderCalendar();
+  }
+
+  jumpTodayBtn.addEventListener("click", function () {
+    var t = new Date();
+    calViewYear = t.getFullYear();
+    calViewMonth = t.getMonth();
+    setSelectedDate(todayStr());
+  });
 
   // ---------- Form handling ----------
 
@@ -304,8 +387,9 @@
   var calGridEl = document.getElementById("calendar-grid");
 
   var today = new Date();
-  var calViewYear = today.getFullYear();
-  var calViewMonth = today.getMonth();
+  var initialSelected = selectedDate.split("-").map(Number);
+  var calViewYear = initialSelected[0];
+  var calViewMonth = initialSelected[1] - 1;
 
   var WEEKDAY_LABELS = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
   var MONTH_LABELS = [
@@ -328,27 +412,43 @@
 
     var firstOfMonth = new Date(calViewYear, calViewMonth, 1);
     var startWeekday = firstOfMonth.getDay();
-    var daysInMonth = new Date(calViewYear, calViewMonth + 1, 0).getDate();
-    var daysInPrevMonth = new Date(calViewYear, calViewMonth, 0).getDate();
 
     var totalCells = 42; // 6 weeks
     var cellDate = new Date(calViewYear, calViewMonth, 1 - startWeekday);
 
     for (var i = 0; i < totalCells; i++) {
-      var cell = document.createElement("div");
+      var thisCellDate = cellDate;
+      var ds = dateToStr(thisCellDate);
+      var cell = document.createElement("button");
+      cell.type = "button";
       cell.className = "cal-day";
-      var isCurrentMonth = cellDate.getMonth() === calViewMonth && cellDate.getFullYear() === calViewYear;
+
+      var isCurrentMonth = thisCellDate.getMonth() === calViewMonth && thisCellDate.getFullYear() === calViewYear;
       if (!isCurrentMonth) {
         cell.classList.add("other-month");
       }
-      if (
-        cellDate.getFullYear() === today.getFullYear() &&
-        cellDate.getMonth() === today.getMonth() &&
-        cellDate.getDate() === today.getDate()
-      ) {
+      if (ds === todayStr()) {
         cell.classList.add("today");
       }
-      cell.textContent = String(cellDate.getDate());
+      if (ds === selectedDate) {
+        cell.classList.add("selected");
+      }
+      if (tasks.some(function (t) { return t.date === ds; })) {
+        cell.classList.add("has-tasks");
+      }
+      cell.textContent = String(thisCellDate.getDate());
+      cell.setAttribute("aria-label", ds);
+
+      (function (dateForClick, cellMonth, cellYear) {
+        cell.addEventListener("click", function () {
+          if (cellMonth !== calViewMonth || cellYear !== calViewYear) {
+            calViewMonth = cellMonth;
+            calViewYear = cellYear;
+          }
+          setSelectedDate(dateForClick);
+        });
+      })(ds, thisCellDate.getMonth(), thisCellDate.getFullYear());
+
       calGridEl.appendChild(cell);
 
       cellDate = new Date(cellDate.getFullYear(), cellDate.getMonth(), cellDate.getDate() + 1);

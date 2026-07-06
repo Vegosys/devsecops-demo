@@ -38,6 +38,11 @@
     <main class="card">
       <div class="content-grid">
         <div class="todo-column">
+          <div class="selected-date-bar">
+            <span id="selected-date-label" class="selected-date-label"></span>
+            <button type="button" id="jump-today-btn" class="today-btn">Today</button>
+          </div>
+
           <form id="task-form" class="task-form" autocomplete="off">
             <input
               type="text"
@@ -54,7 +59,7 @@
 
           <div id="empty-state" class="empty-state">
             <div class="empty-emoji">🌤️📋</div>
-            <p>No tasks yet. Add one above to get started!</p>
+            <p>No tasks for this date yet. Add one above to get started!</p>
           </div>
         </div>
 

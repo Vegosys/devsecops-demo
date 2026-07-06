@@ -224,6 +224,36 @@ body {
   min-width: 240px;
 }
 
+.selected-date-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 10px;
+  flex-wrap: wrap;
+}
+
+.selected-date-label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.today-btn {
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text);
+  border-radius: 999px;
+  padding: 4px 12px;
+  font-size: 0.75rem;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.today-btn:hover {
+  background: var(--border);
+}
+
 .calendar-panel {
   flex: 0 0 260px;
   width: 260px;
@@ -274,9 +304,19 @@ body {
 }
 
 .calendar-grid .cal-day {
+  position: relative;
   font-size: 0.8rem;
   padding: 6px 0;
   border-radius: 6px;
+  cursor: pointer;
+  border: none;
+  background: transparent;
+  color: var(--text);
+  font-family: inherit;
+}
+
+.calendar-grid .cal-day:hover {
+  background: var(--border);
 }
 
 .calendar-grid .cal-day.other-month {
@@ -285,9 +325,30 @@ body {
 }
 
 .calendar-grid .cal-day.today {
+  font-weight: 700;
+  outline: 1px solid var(--accent);
+}
+
+.calendar-grid .cal-day.selected {
   background: var(--accent);
   color: #fff;
   font-weight: 700;
+}
+
+.calendar-grid .cal-day.has-tasks::after {
+  content: "";
+  position: absolute;
+  bottom: 2px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--danger);
+}
+
+.calendar-grid .cal-day.selected.has-tasks::after {
+  background: #fff;
 }
 
 .task-form {
