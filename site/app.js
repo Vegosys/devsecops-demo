@@ -4,6 +4,7 @@
   var TASKS_KEY = "todo.tasks";
   var THEME_KEY = "todo.theme";
   var SELECTED_DATE_KEY = "todo.selectedDate";
+  var WATER_KEY = "todo.waterReminder";
 
   var taskForm = document.getElementById("task-form");
   var taskInput = document.getElementById("task-input");
@@ -13,6 +14,9 @@
   var themeButtons = document.querySelectorAll(".theme-btn");
   var selectedDateLabelEl = document.getElementById("selected-date-label");
   var jumpTodayBtn = document.getElementById("jump-today-btn");
+  var waterToggleBtn = document.getElementById("water-toggle-btn");
+  var waterBanner = document.getElementById("water-banner");
+  var waterDismissBtn = document.getElementById("water-dismiss-btn");
 
   // ---------- Date helpers ----------
 
@@ -377,6 +381,81 @@
       systemMedia.addListener(onSystemChange);
     }
   }
+
+  // ---------- Water break reminder ----------
+
+  var waterTimer = null;
+
+  function loadWaterSettings() {
+    try {
+      var raw = localStorage.getItem(WATER_KEY);
+      var parsed = raw ? JSON.parse(raw) : null;
+      if (parsed && typeof parsed.enabled === "boolean") {
+        return {
+          enabled: parsed.enabled,
+          intervalMinutes: parsed.intervalMinutes || 30,
+        };
+      }
+    } catch (e) {
+      /* ignore */
+    }
+    return { enabled: false, intervalMinutes: 30 };
+  }
+
+  function saveWaterSettings(settings) {
+    try {
+      localStorage.setItem(WATER_KEY, JSON.stringify(settings));
+    } catch (e) {
+      /* ignore */
+    }
+  }
+
+  var waterSettings = loadWaterSettings();
+
+  function updateWaterButton() {
+    if (waterSettings.enabled) {
+      waterToggleBtn.textContent = "💧 Water: On";
+      waterToggleBtn.classList.add("on");
+    } else {
+      waterToggleBtn.textContent = "💧 Water: Off";
+      waterToggleBtn.classList.remove("on");
+    }
+  }
+
+  function showWaterBanner() {
+    waterBanner.classList.remove("hidden");
+  }
+
+  function hideWaterBanner() {
+    waterBanner.classList.add("hidden");
+  }
+
+  function startWaterTimer() {
+    if (waterTimer) {
+      clearInterval(waterTimer);
+      waterTimer = null;
+    }
+    if (waterSettings.enabled) {
+      var ms = Math.max(1, waterSettings.intervalMinutes) * 60 * 1000;
+      waterTimer = setInterval(showWaterBanner, ms);
+    } else {
+      hideWaterBanner();
+    }
+  }
+
+  waterToggleBtn.addEventListener("click", function () {
+    waterSettings.enabled = !waterSettings.enabled;
+    saveWaterSettings(waterSettings);
+    updateWaterButton();
+    startWaterTimer();
+  });
+
+  waterDismissBtn.addEventListener("click", function () {
+    hideWaterBanner();
+  });
+
+  updateWaterButton();
+  startWaterTimer();
 
   // ---------- Calendar ----------
 

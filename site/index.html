@@ -7,6 +7,11 @@
 <link rel="stylesheet" href="styles.css">
 </head>
 <body>
+  <div id="water-banner" class="water-banner hidden" role="alert">
+    <span>💧 Time for a water break! Stay hydrated.</span>
+    <button type="button" id="water-dismiss-btn" class="water-dismiss-btn" title="Dismiss">✕</button>
+  </div>
+
   <div class="app">
     <header class="topbar">
       <div class="brand">
@@ -18,6 +23,7 @@
       </div>
       <div class="topbar-right">
         <div id="clock" class="clock" aria-live="polite"></div>
+        <button type="button" id="water-toggle-btn" class="water-toggle-btn" title="Toggle water break reminder">💧 Water: Off</button>
         <div class="theme-toggle" role="group" aria-label="Theme selection">
           <button type="button" class="theme-btn" data-theme-choice="light" title="Light mode">☀️</button>
           <button type="button" class="theme-btn" data-theme-choice="dark" title="Dark mode">🌙</button>

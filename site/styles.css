@@ -119,12 +119,72 @@ body {
   display: flex;
   align-items: center;
   gap: 12px;
+  flex-wrap: wrap;
 }
 
 .clock {
   font-size: 0.85rem;
   color: var(--muted);
   white-space: nowrap;
+}
+
+.water-toggle-btn {
+  border: 1px solid var(--border);
+  background: var(--card-bg);
+  color: var(--text);
+  border-radius: 999px;
+  padding: 6px 12px;
+  font-size: 0.8rem;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.2s, color 0.2s, border-color 0.2s;
+}
+
+.water-toggle-btn:hover {
+  background: var(--border);
+}
+
+.water-toggle-btn.on {
+  background: var(--accent);
+  color: #fff;
+  border-color: var(--accent);
+}
+
+.water-banner {
+  position: fixed;
+  top: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: linear-gradient(120deg, #2fb4e0, #4f7bf5);
+  color: #fff;
+  padding: 12px 18px;
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+  font-size: 0.9rem;
+  max-width: 90vw;
+}
+
+.water-banner.hidden {
+  display: none;
+}
+
+.water-dismiss-btn {
+  border: none;
+  background: rgba(255, 255, 255, 0.25);
+  color: #fff;
+  border-radius: 6px;
+  cursor: pointer;
+  padding: 2px 8px;
+  font-size: 0.9rem;
+  line-height: 1.4;
+}
+
+.water-dismiss-btn:hover {
+  background: rgba(255, 255, 255, 0.4);
 }
 
 .theme-toggle {
